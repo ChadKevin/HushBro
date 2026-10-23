@@ -2,10 +2,10 @@
 
 ## Current Status
 
-- Last completed milestone: Step 3 — Repositories, dependency injection and channels.
-- Current milestone: Step 3 complete. Ready for Step 4 — Notification access and listener service.
+- Last completed milestone: Step 4 — Notification access and listener service.
+- Current milestone: Step 4 complete. Ready for Step 5 — Buffered pipeline and batch writer.
 - Overall status: In progress.
-- GitHub repository: Project has been pushed to GitHub.
+- GitHub repository: Step 1–3 changes pushed to GitHub (`main`). Step 4 implemented and tested locally.
 - Last verified build: `.\gradlew.bat test assembleDebug` succeeded with exit code 0.
 
 ## Completed
@@ -37,25 +37,28 @@
   - [x] Created Hilt DI modules: `DatabaseModule`, `DataStoreModule`, and `CoroutineModule` (providing application-scoped `CoroutineScope`).
   - [x] Annotated `MainActivity` with `@AndroidEntryPoint` and injected `NotificationRepository` and `SettingsStore`.
   - [x] Created unit tests (`NotificationRepositoryTest`).
+  - [x] Committed and pushed Steps 1–3 to GitHub.
+- [x] Step 4: Notification access and listener service:
+  - [x] Created `HushBroListenerService` extending `NotificationListenerService`.
+  - [x] Declared service in `AndroidManifest.xml` with `BIND_NOTIFICATION_LISTENER_SERVICE` permission and `android.service.notification.NotificationListenerService` intent action.
+  - [x] Added package visibility `<queries>` for launcher applications.
+  - [x] Created `ListenerBridge` singleton for lifecycle tracking, active notifications, and key cancellation.
+  - [x] Filtered out HushBro's own notifications, ongoing notifications, and group summaries in `onNotificationPosted`.
+  - [x] Extracted notification metadata safely with `BIG_TEXT` fallback to `TEXT`, and safe app label resolution.
+  - [x] Logged safe non-sensitive metadata only (compliant with privacy constraints).
+  - [x] Implemented rebind request in `onListenerDisconnected`.
+  - [x] Created `PermissionUtils` with notification access verification and settings intent.
+  - [x] Created `NotificationAccessBanner` with plain explanation (what is observed vs what is never done: offline, no network, no replies).
+  - [x] Wired `MainActivity` to re-check access state on `ON_RESUME` and display the banner.
 
-## Files Changed/Created in Step 3
+## Files Changed/Created in Step 4
 
-- `gradle/libs.versions.toml` (added Hilt and DataStore dependencies)
-- `build.gradle.kts` (added Hilt plugin alias)
-- `app/build.gradle.kts` (applied Hilt plugin, dependencies)
-- `app/src/main/AndroidManifest.xml` (registered `android:name=".HushBroApp"`)
-- `app/src/main/java/com/invictus/hushbro/HushBroApp.kt`
-- `app/src/main/java/com/invictus/hushbro/notify/Channels.kt`
-- `app/src/main/java/com/invictus/hushbro/data/prefs/SettingsStore.kt`
-- `app/src/main/java/com/invictus/hushbro/data/repo/NotificationRepository.kt`
-- `app/src/main/java/com/invictus/hushbro/data/repo/RuleRepository.kt`
-- `app/src/main/java/com/invictus/hushbro/data/repo/StatsRepository.kt`
-- `app/src/main/java/com/invictus/hushbro/data/repo/AppPrefRepository.kt`
-- `app/src/main/java/com/invictus/hushbro/di/DatabaseModule.kt`
-- `app/src/main/java/com/invictus/hushbro/di/DataStoreModule.kt`
-- `app/src/main/java/com/invictus/hushbro/di/CoroutineModule.kt`
+- `app/src/main/AndroidManifest.xml` (added `<queries>` and declared `HushBroListenerService`)
+- `app/src/main/java/com/invictus/hushbro/service/HushBroListenerService.kt`
+- `app/src/main/java/com/invictus/hushbro/service/ListenerBridge.kt`
+- `app/src/main/java/com/invictus/hushbro/util/PermissionUtils.kt`
+- `app/src/main/java/com/invictus/hushbro/ui/onboarding/NotificationAccessBanner.kt`
 - `app/src/main/java/com/invictus/hushbro/MainActivity.kt`
-- `app/src/test/java/com/invictus/hushbro/data/repo/NotificationRepositoryTest.kt`
 
 ## Current Known Configuration
 
@@ -71,16 +74,16 @@
 - Minimum SDK: 26
 - Backup allowed: false
 - Internet permission: None
-- Database: Room 2.6.1, version 1, initial unencrypted implementation
-- Notification listener: Not implemented yet (scheduled for Step 4)
-- Navigation: Not implemented yet (scheduled for Step 9)
+- Database: Room 2.6.1, version 1
+- Notification listener: `HushBroListenerService` registered and active
 
 ## Issues / Notes
 
-- Running `.\gradlew.bat test assembleDebug` succeeds cleanly with exit code 0 (79 actionable tasks).
-- Remember to click **Sync Now** in Android Studio so the IDE editor indexes the new Hilt and DataStore libraries.
+- Step 1–3 code is pushed to GitHub remote `origin/main`.
+- Step 4 compiles and passes all tests via `.\gradlew.bat test assembleDebug`.
 
 ## Next Action
 
-Step 4 — Notification access and listener service. Do not start until approved.
+Step 5 — Buffered processing pipeline and batch writer (`RawNotification`, bounded Kotlin Channel, background consumer, deduplication, batch transaction insertion).
+
 
