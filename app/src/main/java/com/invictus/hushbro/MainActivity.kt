@@ -47,6 +47,11 @@ import com.invictus.hushbro.service.ListenerBridge
 import com.invictus.hushbro.ui.onboarding.NotificationAccessBanner
 import com.invictus.hushbro.util.PermissionUtils
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -203,15 +208,15 @@ fun HushBroScreen(
                         Text(text = "${n.appLabel}: ${n.title ?: ""}", style = MaterialTheme.typography.titleSmall)
                         Text(text = n.text ?: "", style = MaterialTheme.typography.bodySmall)
                         OutlinedButton(onClick = {
-                            val data = androidx.work.Data.Builder()
+                            val data = Data.Builder()
                                 .putString("title", n.title ?: "")
                                 .putString("text", n.text ?: "")
                                 .build()
-                            val req = androidx.work.OneTimeWorkRequestBuilder<com.invictus.hushbro.work.SnoozeWorker>()
+                            val req = OneTimeWorkRequestBuilder<com.invictus.hushbro.work.SnoozeWorker>()
                                 .setInitialDelay(10, java.util.concurrent.TimeUnit.MINUTES)
                                 .setInputData(data)
                                 .build()
-                            androidx.work.WorkManager.getInstance(context).enqueue(req)
+                            WorkManager.getInstance(context).enqueue(req)
                         }) { Text("Snooze 10m") }
                     }
                 }
@@ -265,9 +270,9 @@ fun HushBroScreen(
 
         Button(onClick = { scope.launch { digestManager.sendDigest() } }) { Text("Send Digest Now") }
         Button(onClick = {
-            val request = androidx.work.PeriodicWorkRequestBuilder<com.invictus.hushbro.work.DigestWorker>(24, java.util.concurrent.TimeUnit.HOURS).build()
-            androidx.work.WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "digest", androidx.work.ExistingPeriodicWorkPolicy.KEEP, request
+            val request = PeriodicWorkRequestBuilder<com.invictus.hushbro.work.DigestWorker>(24, java.util.concurrent.TimeUnit.HOURS).build()
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "digest", ExistingPeriodicWorkPolicy.KEEP, request
             )
         }) { Text("Schedule Daily Digest") }
 
