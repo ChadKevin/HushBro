@@ -36,9 +36,8 @@ abstract class HushBroDatabase : RoomDatabase() {
         private var INSTANCE: HushBroDatabase? = null
 
         fun getInstance(context: Context): HushBroDatabase {
-            net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
             val passphrase = "hushbro-dev-key".toByteArray()
-            val factory = net.sqlcipher.database.SupportFactory(passphrase)
+            val factory = net.zetetic.database.sqlcipher.SupportOpenHelperFactory(passphrase)
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
