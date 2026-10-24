@@ -37,7 +37,9 @@ import com.invictus.hushbro.data.db.entity.NotificationEntity
 import com.invictus.hushbro.data.db.model.NotificationStatus
 import com.invictus.hushbro.data.db.model.NotificationTag
 import com.invictus.hushbro.data.prefs.SettingsStore
+import com.invictus.hushbro.data.repo.AppPrefRepository
 import com.invictus.hushbro.data.repo.NotificationRepository
+import com.invictus.hushbro.notify.DigestManager
 import com.invictus.hushbro.data.repo.RuleRepository
 import com.invictus.hushbro.service.ListenerBridge
 import com.invictus.hushbro.ui.onboarding.NotificationAccessBanner
@@ -61,6 +63,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var ruleRepository: RuleRepository
 
+    @Inject
+    lateinit var appPrefRepository: AppPrefRepository
+
+    @Inject
+    lateinit var digestManager: DigestManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -70,7 +78,9 @@ class MainActivity : ComponentActivity() {
                     notificationRepository = notificationRepository,
                     settingsStore = settingsStore,
                     listenerBridge = listenerBridge,
-                    ruleRepository = ruleRepository
+                    ruleRepository = ruleRepository,
+                    appPrefRepository = appPrefRepository,
+                    digestManager = digestManager
                 )
             }
         }
@@ -82,7 +92,9 @@ fun HushBroScreen(
     notificationRepository: NotificationRepository,
     settingsStore: SettingsStore,
     listenerBridge: ListenerBridge,
-    ruleRepository: RuleRepository
+    ruleRepository: RuleRepository,
+    appPrefRepository: AppPrefRepository,
+    digestManager: DigestManager
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -220,7 +232,13 @@ fun HushBroScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Button(onClick = { scope.launch { digestManager.sendDigest() } }) { Text("Send Digest Now") }
+        Button(onClick = {
+            val request = androidx.work.PeriodicWorkRequestBuilder<com.invictus.hushbro.work.DigestWorker>(24, java.util.concurrent.TimeUnit.HOURS).build()
+            androidx.work.WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "digest", androidx.work.ExistingPeriodicWorkPolicy.KEEP, request
+            )
+        }) { Text("Schedule Daily Digest") }
 
         Button(onClick = {
             scope.launch {

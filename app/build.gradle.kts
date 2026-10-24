@@ -65,6 +65,9 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.paging.runtime)
 
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+
     // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
 
