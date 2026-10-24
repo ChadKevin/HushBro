@@ -8,10 +8,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -35,6 +38,7 @@ import com.invictus.hushbro.data.db.model.NotificationStatus
 import com.invictus.hushbro.data.db.model.NotificationTag
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.data.repo.NotificationRepository
+import com.invictus.hushbro.data.repo.RuleRepository
 import com.invictus.hushbro.service.ListenerBridge
 import com.invictus.hushbro.ui.onboarding.NotificationAccessBanner
 import com.invictus.hushbro.util.PermissionUtils
@@ -54,6 +58,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var listenerBridge: ListenerBridge
 
+    @Inject
+    lateinit var ruleRepository: RuleRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -62,7 +69,8 @@ class MainActivity : ComponentActivity() {
                 HushBroScreen(
                     notificationRepository = notificationRepository,
                     settingsStore = settingsStore,
-                    listenerBridge = listenerBridge
+                    listenerBridge = listenerBridge,
+                    ruleRepository = ruleRepository
                 )
             }
         }
@@ -73,7 +81,8 @@ class MainActivity : ComponentActivity() {
 fun HushBroScreen(
     notificationRepository: NotificationRepository,
     settingsStore: SettingsStore,
-    listenerBridge: ListenerBridge
+    listenerBridge: ListenerBridge,
+    ruleRepository: RuleRepository
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -99,7 +108,16 @@ fun HushBroScreen(
     val isListenerConnected by listenerBridge.isListenerConnected.collectAsState()
     val liveNotificationCount by listenerBridge.activeNotificationCount.collectAsState()
     val notifications by notificationRepository.getAllNotifications().collectAsState(initial = emptyList())
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredNotifications = remember(notifications, searchQuery) {
+        if (searchQuery.isBlank()) notifications else notifications.filter {
+            it.title?.contains(searchQuery, true) == true ||
+                it.text?.contains(searchQuery, true) == true ||
+                it.appLabel.contains(searchQuery, true)
+        }
+    }
     val userSettings by settingsStore.userSettingsFlow.collectAsState(initial = null)
+    val rules by ruleRepository.observeRules().collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
@@ -145,10 +163,17 @@ fun HushBroScreen(
             style = MaterialTheme.typography.bodyMedium
         )
 
-        if (notifications.isNotEmpty()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Search notifications") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (filteredNotifications.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(notifications) { n ->
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(filteredNotifications) { n ->
                     Column(modifier = Modifier.padding(8.dp)) {
                         Text(text = "${n.appLabel}: ${n.title ?: ""}", style = MaterialTheme.typography.titleSmall)
                         Text(text = n.text ?: "", style = MaterialTheme.typography.bodySmall)
@@ -157,6 +182,36 @@ fun HushBroScreen(
             }
         }
 
+        var ruleKeyword by remember { mutableStateOf("") }
+        var ruleApp by remember { mutableStateOf("") }
+        var ruleAction by remember { mutableStateOf(com.invictus.hushbro.data.db.model.RuleAction.MUTE) }
+
+        OutlinedTextField(value = ruleKeyword, onValueChange = { ruleKeyword = it }, label = { Text("Rule keyword") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = ruleApp, onValueChange = { ruleApp = it }, label = { Text("App package (optional)") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            scope.launch {
+                ruleRepository.upsert(
+                    com.invictus.hushbro.data.db.entity.RuleEntity(
+                        priority = rules.size,
+                        appPackage = ruleApp.ifBlank { null },
+                        keyword = ruleKeyword,
+                        action = ruleAction
+                    )
+                )
+                ruleKeyword = ""
+                ruleApp = ""
+            }
+        }) { Text("Add Rule") }
+
+        rules.forEach { r ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("${r.priority}: ${r.keyword} -> ${r.action}", modifier = Modifier.weight(1f))
+                OutlinedButton(onClick = { scope.launch { ruleRepository.upsert(r.copy(enabled = !r.enabled)) } }) {
+                    Text(if (r.enabled) "Disable" else "Enable")
+                }
+                OutlinedButton(onClick = { scope.launch { ruleRepository.deleteById(r.id) } }) { Text("Delete") }
+            }
+        }
         userSettings?.let { settings ->
             Text(
                 text = "Settings: retention=${settings.retentionDays}d, digest=${settings.digestInterval}",
