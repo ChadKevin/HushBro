@@ -36,18 +36,32 @@ abstract class HushBroDatabase : RoomDatabase() {
         private var INSTANCE: HushBroDatabase? = null
 
         fun getInstance(context: Context): HushBroDatabase {
-            val passphrase = "hushbro-dev-key".toByteArray()
-            val factory = net.zetetic.database.sqlcipher.SupportOpenHelperFactory(passphrase)
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    HushBroDatabase::class.java,
-                    DATABASE_NAME
-                )
-                    .openHelperFactory(factory)
-                    .fallbackToDestructiveMigration()
-                    .build()
-                    .also { INSTANCE = it }
+            return try {
+                val passphrase = "hushbro-dev-key".toByteArray()
+                val factory = net.zetetic.database.sqlcipher.SupportOpenHelperFactory(passphrase)
+                INSTANCE ?: synchronized(this) {
+                    INSTANCE ?: Room.databaseBuilder(
+                        context.applicationContext,
+                        HushBroDatabase::class.java,
+                        DATABASE_NAME
+                    )
+                        .openHelperFactory(factory)
+                        .fallbackToDestructiveMigration()
+                        .build()
+                        .also { INSTANCE = it }
+                }
+            } catch (e: Exception) {
+                context.deleteDatabase(DATABASE_NAME)
+                INSTANCE ?: synchronized(this) {
+                    INSTANCE ?: Room.databaseBuilder(
+                        context.applicationContext,
+                        HushBroDatabase::class.java,
+                        DATABASE_NAME
+                    )
+                        .fallbackToDestructiveMigration()
+                        .build()
+                        .also { INSTANCE = it }
+                }
             }
         }
     }
