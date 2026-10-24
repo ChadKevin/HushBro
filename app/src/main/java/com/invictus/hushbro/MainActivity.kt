@@ -39,6 +39,7 @@ import com.invictus.hushbro.data.db.model.NotificationTag
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.data.repo.AppPrefRepository
 import com.invictus.hushbro.data.repo.NotificationRepository
+import com.invictus.hushbro.data.repo.StatsRepository
 import com.invictus.hushbro.notify.DigestManager
 import com.invictus.hushbro.data.repo.RuleRepository
 import com.invictus.hushbro.service.ListenerBridge
@@ -69,6 +70,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var digestManager: DigestManager
 
+    @Inject
+    lateinit var statsRepository: StatsRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -80,7 +84,8 @@ class MainActivity : ComponentActivity() {
                     listenerBridge = listenerBridge,
                     ruleRepository = ruleRepository,
                     appPrefRepository = appPrefRepository,
-                    digestManager = digestManager
+                    digestManager = digestManager,
+                    statsRepository = statsRepository
                 )
             }
         }
@@ -94,7 +99,8 @@ fun HushBroScreen(
     listenerBridge: ListenerBridge,
     ruleRepository: RuleRepository,
     appPrefRepository: AppPrefRepository,
-    digestManager: DigestManager
+    digestManager: DigestManager,
+    statsRepository: StatsRepository
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -130,6 +136,7 @@ fun HushBroScreen(
     }
     val userSettings by settingsStore.userSettingsFlow.collectAsState(initial = null)
     val rules by ruleRepository.observeRules().collectAsState(initial = emptyList())
+    val appSummaries by statsRepository.getAppSummaries().collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
@@ -189,6 +196,17 @@ fun HushBroScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         Text(text = "${n.appLabel}: ${n.title ?: ""}", style = MaterialTheme.typography.titleSmall)
                         Text(text = n.text ?: "", style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = {
+                            val data = androidx.work.Data.Builder()
+                                .putString("title", n.title ?: "")
+                                .putString("text", n.text ?: "")
+                                .build()
+                            val req = androidx.work.OneTimeWorkRequestBuilder<com.invictus.hushbro.work.SnoozeWorker>()
+                                .setInitialDelay(10, java.util.concurrent.TimeUnit.MINUTES)
+                                .setInputData(data)
+                                .build()
+                            androidx.work.WorkManager.getInstance(context).enqueue(req)
+                        }) { Text("Snooze 10m") }
                     }
                 }
             }
@@ -230,6 +248,11 @@ fun HushBroScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
             )
+        }
+
+        Text(text = "Insights:", style = MaterialTheme.typography.titleMedium)
+        appSummaries.forEach { s ->
+            Text(text = "${s.appLabel}: ${s.totalCount} total, ${s.unreadCount} unread", style = MaterialTheme.typography.bodySmall)
         }
 
         Button(onClick = { scope.launch { digestManager.sendDigest() } }) { Text("Send Digest Now") }
