@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
@@ -148,11 +150,16 @@ fun HushBroScreen(
     val userSettings by settingsStore.userSettingsFlow.collectAsState(initial = null)
     val rules by ruleRepository.observeRules().collectAsState(initial = emptyList())
     val appSummaries by statsRepository.getAppSummaries().collectAsState(initial = emptyList())
+    val scrollState = rememberScrollState()
+
+    // Refresh the live notification count immediately when the screen appears
+    listenerBridge.updateActiveCount()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
+            .padding(20.dp)
+            .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {

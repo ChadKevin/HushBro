@@ -50,7 +50,28 @@ abstract class HushBroDatabase : RoomDatabase() {
                         .build()
                         .also { INSTANCE = it }
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // SQLCipher failed (e.g., native lib missing, passphrase wrong).
+                // Delete the potentially partial database and fall back to plain Room.
+                context.deleteDatabase(DATABASE_NAME)
+                providePlainRoomFallback(context)
+            }
+        }
+
+        private fun providePlainRoomFallback(context: Context): HushBroDatabase {
+            return try {
+                INSTANCE ?: synchronized(this) {
+                    INSTANCE ?: Room.databaseBuilder(
+                        context.applicationContext,
+                        HushBroDatabase::class.java,
+                        DATABASE_NAME
+                    )
+                        .fallbackToDestructiveMigration()
+                        .build()
+                        .also { INSTANCE = it }
+                }
+            } catch (e: Throwable) {
+                // Even plain Room failed. Delete any leftover database and try one final time.
                 context.deleteDatabase(DATABASE_NAME)
                 INSTANCE ?: synchronized(this) {
                     INSTANCE ?: Room.databaseBuilder(
