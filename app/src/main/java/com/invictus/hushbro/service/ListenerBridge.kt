@@ -7,7 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ListenerBridge @Inject constructor() {
+open class ListenerBridge @Inject constructor() {
 
     private val _isListenerConnected = MutableStateFlow(false)
     val isListenerConnected: StateFlow<Boolean> = _isListenerConnected.asStateFlow()
@@ -34,14 +34,16 @@ class ListenerBridge @Inject constructor() {
         if (service != null) {
             val count = runCatching {
                 service.activeNotifications?.count {
-                    it.packageName != service.packageName && !it.isOngoing
+                    it.packageName != service.packageName
                 } ?: 0
             }.getOrDefault(0)
             _activeNotificationCount.value = count
         }
     }
 
-    fun cancelNotificationByKey(key: String) {
+    // `open` (with the class above) so unit tests can subclass and record
+    // cancellation requests; production behavior is unchanged.
+    open fun cancelNotificationByKey(key: String) {
         activeService?.cancelNotification(key)
     }
 

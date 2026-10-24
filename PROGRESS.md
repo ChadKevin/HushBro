@@ -82,8 +82,16 @@
 - Step 1–3 code is pushed to GitHub remote `origin/main`.
 - Step 4 compiles and passes all tests via `.\gradlew.bat test assembleDebug`.
 
+## Step 5 Completion
+
+- Implemented buffered `NotificationPipeline` with bounded `Channel` (capacity 512, DROP_OLDEST), background consumer, batch writer (max 100), drain timeout, dedup identity, processing errors skipped.
+- Made `ListenerBridge` testable and `HushBroListenerService` enqueue/backfill via pipeline.
+- Fixed Android `Log` calls to be unit-test safe.
+- Lazy-started consumer after enqueue to preserve bounded overflow semantics.
+- Tests: `:app:testDebugUnitTest` passes (19 tests). Build: `:app:compileDebugKotlin` passes.
+
 ## Next Action
 
-Step 5 — Buffered processing pipeline and batch writer (`RawNotification`, bounded Kotlin Channel, background consumer, deduplication, batch transaction insertion).
+Step 6 — (next milestone).
 
 
