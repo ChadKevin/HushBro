@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -142,6 +144,18 @@ fun HushBroScreen(
             text = "Stored notifications in DB: ${notifications.size}",
             style = MaterialTheme.typography.bodyMedium
         )
+
+        if (notifications.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(notifications) { n ->
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Text(text = "${n.appLabel}: ${n.title ?: ""}", style = MaterialTheme.typography.titleSmall)
+                        Text(text = n.text ?: "", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
 
         userSettings?.let { settings ->
             Text(
