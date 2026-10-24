@@ -39,6 +39,7 @@ import com.invictus.hushbro.data.db.model.NotificationTag
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.data.repo.AppPrefRepository
 import com.invictus.hushbro.data.repo.NotificationRepository
+import com.invictus.hushbro.util.CsvExporter
 import com.invictus.hushbro.data.repo.StatsRepository
 import com.invictus.hushbro.notify.DigestManager
 import com.invictus.hushbro.data.repo.RuleRepository
@@ -73,6 +74,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var statsRepository: StatsRepository
 
+    @Inject
+    lateinit var csvExporter: CsvExporter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -85,7 +89,8 @@ class MainActivity : ComponentActivity() {
                     ruleRepository = ruleRepository,
                     appPrefRepository = appPrefRepository,
                     digestManager = digestManager,
-                    statsRepository = statsRepository
+                    statsRepository = statsRepository,
+                    csvExporter = csvExporter
                 )
             }
         }
@@ -100,7 +105,8 @@ fun HushBroScreen(
     ruleRepository: RuleRepository,
     appPrefRepository: AppPrefRepository,
     digestManager: DigestManager,
-    statsRepository: StatsRepository
+    statsRepository: StatsRepository,
+    csvExporter: CsvExporter
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -254,6 +260,8 @@ fun HushBroScreen(
         appSummaries.forEach { s ->
             Text(text = "${s.appLabel}: ${s.totalCount} total, ${s.unreadCount} unread", style = MaterialTheme.typography.bodySmall)
         }
+
+        Button(onClick = { scope.launch { val f = csvExporter.export(); android.widget.Toast.makeText(context, "Exported: ${f.absolutePath}", android.widget.Toast.LENGTH_SHORT).show() } }) { Text("Export CSV") }
 
         Button(onClick = { scope.launch { digestManager.sendDigest() } }) { Text("Send Digest Now") }
         Button(onClick = {

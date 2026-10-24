@@ -36,13 +36,17 @@ abstract class HushBroDatabase : RoomDatabase() {
         private var INSTANCE: HushBroDatabase? = null
 
         fun getInstance(context: Context): HushBroDatabase {
+            net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+            val passphrase = "hushbro-dev-key".toByteArray()
+            val factory = net.sqlcipher.database.SupportFactory(passphrase)
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     HushBroDatabase::class.java,
                     DATABASE_NAME
                 )
-                    .fallbackToDestructiveMigration() // Dev-only fallback per build guide
+                    .openHelperFactory(factory)
+                    .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }
             }

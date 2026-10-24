@@ -68,6 +68,9 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
+    // SQLCipher
+    implementation(libs.sqlcipher)
+
     // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
 
