@@ -7,6 +7,8 @@
 - Overall status: In progress.
 - GitHub repository: Step 1â€“3 changes pushed to GitHub (`main`). Step 4 implemented and tested locally.
 - Last verified build: `.\gradlew.bat test assembleDebug` succeeded with exit code 0.
+- Follow-up: Fixed broken AutumnTheme/AutumnComponents compile errors and applied AutumnTheme in MainActivity. Build and unit tests pass.
+
 
 ## Completed
 
@@ -99,14 +101,14 @@ Step 6 â€” (next milestone).
   - Root cause: HushBroDatabase.getInstance() used catch (e: Exception) which does NOT catch java.lang.Error subclasses like UnsatisfiedLinkError. When SQLCipher's native library fails to load during database initialization, an UnsatisfiedLinkError (an Error, not Exception) is thrown, propagates uncaught, and crashes the app on startup.
   - Fix: Changed catch (e: Exception) to catch (e: Throwable) in HushBroDatabase.getInstance() so both Exception and Error types are caught. If SQLCipher initialization fails, the app falls back to plain Room instead of crashing.
 
-- **BUG FIX: App crash on startup — multiple startup resilience improvements.**
+- **BUG FIX: App crash on startup ï¿½ multiple startup resilience improvements.**
   Root cause: App crashes on startup when SQLCipher native library (libsqlcipher.so) fails to load, throwing UnsatisfiedLinkError (a java.lang.Error, not Exception). The original catch (e: Exception) in HushBroDatabase.getInstance() did not catch Error types.
   Fixes applied:
-  1. HushBroApp.onCreate() — wrapped Channels.createNotificationChannels() in try-catch so notification channel setup can never crash the Application.
-  2. HushBroDatabase.getInstance() — changed catch (e: Exception) to catch (e: Throwable) to catch Error types like UnsatisfiedLinkError.
-  3. HushBroDatabase.providePlainRoomFallback() — new method with its own try-catch and final retry, so even if plain Room fails, the app attempts recovery before giving up.
+  1. HushBroApp.onCreate() ï¿½ wrapped Channels.createNotificationChannels() in try-catch so notification channel setup can never crash the Application.
+  2. HushBroDatabase.getInstance() ï¿½ changed catch (e: Exception) to catch (e: Throwable) to catch Error types like UnsatisfiedLinkError.
+  3. HushBroDatabase.providePlainRoomFallback() ï¿½ new method with its own try-catch and final retry, so even if plain Room fails, the app attempts recovery before giving up.
 
-- **ROOT CAUSE FOUND via logcat:** UnsatisfiedLinkError: No implementation found for ...SQLiteConnection.nativeOpen — SQLCipher native library libsqlcipher.so was never loaded via System.loadLibrary(). Room's databaseBuilder().build() does NOT open the database; it only creates the object. The actual native call happens lazily on a background thread during the first Room query, so the catch (Throwable) in getInstance() never saw it.
+- **ROOT CAUSE FOUND via logcat:** UnsatisfiedLinkError: No implementation found for ...SQLiteConnection.nativeOpen ï¿½ SQLCipher native library libsqlcipher.so was never loaded via System.loadLibrary(). Room's databaseBuilder().build() does NOT open the database; it only creates the object. The actual native call happens lazily on a background thread during the first Room query, so the catch (Throwable) in getInstance() never saw it.
 - **Defense in depth:** HushBroDatabase.getInstance() catches Throwable (not just Exception) and falls back to plain Room if SQLCipher fails. providePlainRoomFallback() has its own try-catch and final retry.
 - **Files changed:** HushBroApp.kt (added System.loadLibrary), HushBroDatabase.kt (Throwable catch + multi-level fallback)
 - **Build verification:** :app:compileDebugKotlin ?, :app:testDebugUnitTest ? (19 tests), :app:assembleDebug ?
@@ -118,7 +120,7 @@ Step 6 â€” (next milestone).
 - **Build verification:** compileDebugKotlin PASSED, testDebugUnitTest PASSED (19 tests), assembleDebug PASSED
 
 - **ROOT CAUSE CONFIRMED via logcat (final):** Two distinct startup crashes:
-  2. SQLiteNotADatabaseException (code 26): file is not a database — Existing hushbro.db was incompatible with SQLCipher (plain SQLite or corrupted). Room.databaseBuilder().build() does NOT open the DB; it opens lazily on first query. Fixed by calling context.deleteDatabase() before SQLCipher init so a fresh encrypted DB is created.
+  2. SQLiteNotADatabaseException (code 26): file is not a database ï¿½ Existing hushbro.db was incompatible with SQLCipher (plain SQLite or corrupted). Room.databaseBuilder().build() does NOT open the DB; it opens lazily on first query. Fixed by calling context.deleteDatabase() before SQLCipher init so a fresh encrypted DB is created.
   3. catch (e: Exception) does not catch java.lang.Error subclasses (UnsatisfiedLinkError, SQLiteNotADatabaseException extends RuntimeException). Fixed by using catch (e: Throwable) everywhere.
   Files changed: HushBroApp.kt (System.loadLibrary + try-catch channels), HushBroDatabase.kt (deleteDatabase before SQLCipher + Throwable catch + multi-level plain Room fallback)
   Build verification: compileDebugKotlin PASSED, testDebugUnitTest PASSED (19 tests), assembleDebug PASSED
@@ -136,3 +138,8 @@ Step 6 â€” (next milestone).
   3. Notification shade count not instant: Added listenerBridge.updateActiveCount() call in HushBroScreen composable body so it runs on first composition, not just on ON_RESUME.
   Files changed: MainActivity.kt (scroll + count refresh), HushBroDatabase.kt (removed deleteDatabase from main path)
   Build: compileDebugKotlin PASSED, testDebugUnitTest PASSED 19 tests, assembleDebug PASSED
+
+## Navigation & UI (Phase 2)
+- Bottom nav with 5 destinations; Home/Chronicle/Rules/Insights/Settings screens wired to repos.
+- Build and tests pass.
+
