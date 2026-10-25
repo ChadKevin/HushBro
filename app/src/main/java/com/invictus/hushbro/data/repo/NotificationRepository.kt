@@ -65,6 +65,9 @@ class NotificationRepository @Inject constructor(
     suspend fun getHeldForDigest(upToTime: Long): List<NotificationEntity> =
         notificationDao.getHeldForDigest(upToTime)
 
+    suspend fun deleteById(id: Long) =
+        notificationDao.deleteById(id)
+
     suspend fun deleteOlderThan(timestamp: Long): Int =
         notificationDao.deleteOlderThan(timestamp)
 

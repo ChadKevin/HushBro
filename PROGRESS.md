@@ -139,7 +139,15 @@ Step 6 — (next milestone).
   Files changed: MainActivity.kt (scroll + count refresh), HushBroDatabase.kt (removed deleteDatabase from main path)
   Build: compileDebugKotlin PASSED, testDebugUnitTest PASSED 19 tests, assembleDebug PASSED
 
+
+
 ## Navigation & UI (Phase 2)
 - Bottom nav with 5 destinations; Home/Chronicle/Rules/Insights/Settings screens wired to repos.
 - Build and tests pass.
 
+## Muted notifications persist until manually removed
+- NotificationDao.deleteOlderThan now skips MUTED rows so muted items survive retention pruning.
+- Added deleteById to NotificationDao and NotificationRepository for manual removal.
+- ChronicleScreen detail dialog now has a Remove button.
+- NotificationPipeline.settingsStore made nullable with null-safe access; logging calls wrapped in runCatching so unit tests don't crash on unmocked android.util.Log.
+- Build: testDebugUnitTest PASSED.

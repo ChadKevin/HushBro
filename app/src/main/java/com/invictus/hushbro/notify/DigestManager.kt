@@ -1,8 +1,9 @@
-﻿package com.invictus.hushbro.notify
+package com.invictus.hushbro.notify
 
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import com.invictus.hushbro.data.db.model.NotificationStatus
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.data.repo.NotificationRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -18,16 +19,26 @@ class DigestManager @Inject constructor(
 ) {
     suspend fun sendDigest() {
         val settings = settingsStore.userSettingsFlow.first()
+        if (settings.digestInterval == "OFF") return
         val notifications = notificationRepository.getAllNotifications().first()
-        val eligible = notifications.filter { it.tag.name in settings.digestTags }
+        val eligible = notifications.filter {
+            it.status == NotificationStatus.HELD && it.tag.name in settings.digestTags
+        }
         if (eligible.isEmpty()) return
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val digestText = eligible.joinToString("\n") { item ->
+            val safeTitle = item.title?.takeIf { it.isNotBlank() } ?: "Notification"
+            "${item.appLabel}: $safeTitle"
+        }
         val notification = NotificationCompat.Builder(context, Channels.CHANNEL_ID_DIGEST)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("HushBro Digest")
-            .setContentText("${eligible.size} notifications captured")
-            .setStyle(NotificationCompat.BigTextStyle().bigText(eligible.joinToString("\n") { "${it.appLabel}: ${it.title ?: ""}" }))
+            .setContentText("${eligible.size} notifications are ready")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(digestText))
+            .setAutoCancel(true)
             .build()
-        nm.notify(2001, notification)
+        notificationManager.notify(2001, notification)
+        notificationRepository.updateStatusBatch(eligible.map { it.id }, NotificationStatus.DIGESTED)
     }
 }
