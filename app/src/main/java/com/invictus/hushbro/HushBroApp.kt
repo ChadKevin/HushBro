@@ -10,17 +10,15 @@ class HushBroApp : Application() {
     override fun onCreate() {
         super.onCreate()
         try {
-            // Load SQLCipher native library before any database operations.
-            // Without this, all JNI native calls fail with UnsatisfiedLinkError
-            // and the app crashes on first database access.
             System.loadLibrary("sqlcipher")
+            android.util.Log.i("HushBroApp", "sqlcipher loaded")
         } catch (e: Throwable) {
-            // Library may already be loaded or unavailable; database will fall back to plain Room.
+            android.util.Log.e("HushBroApp", "sqlcipher load failed", e)
         }
         try {
             Channels.createNotificationChannels(this)
         } catch (e: Throwable) {
-            // Notification channel creation must never prevent the app from starting.
+            android.util.Log.e("HushBroApp", "Channel creation failed", e)
         }
     }
 }

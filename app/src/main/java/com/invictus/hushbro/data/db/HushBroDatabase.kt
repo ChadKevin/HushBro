@@ -40,7 +40,7 @@ abstract class HushBroDatabase : RoomDatabase() {
                 val passphrase = "hushbro-dev-key".toByteArray()
                 val factory = net.zetetic.database.sqlcipher.SupportOpenHelperFactory(passphrase)
                 INSTANCE ?: synchronized(this) {
-                    INSTANCE ?: Room.databaseBuilder(
+                    val db = Room.databaseBuilder(
                         context.applicationContext,
                         HushBroDatabase::class.java,
                         DATABASE_NAME
@@ -48,7 +48,12 @@ abstract class HushBroDatabase : RoomDatabase() {
                         .openHelperFactory(factory)
                         .fallbackToDestructiveMigration()
                         .build()
-                        .also { INSTANCE = it }
+                    // Force an eager open so SQLCipher native failures happen here,
+                    // where they can be caught and handled, rather than on a
+                    // background query thread where they crash the app.
+                    db.openHelper.writableDatabase
+                    INSTANCE = db
+                    db
                 }
             } catch (e: Throwable) {
                 // SQLCipher failed (e.g., native lib missing, passphrase wrong).

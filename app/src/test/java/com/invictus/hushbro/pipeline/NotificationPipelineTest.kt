@@ -90,6 +90,8 @@ class NotificationPipelineTest {
 
         override suspend fun getHeldForDigest(upToTime: Long) = emptyList<NotificationEntity>()
 
+        override suspend fun deleteById(id: Long) {}
+
         override suspend fun deleteOlderThan(timestamp: Long): Int = 0
 
         override suspend fun getById(id: Long): NotificationEntity? = null
@@ -157,6 +159,7 @@ class NotificationPipelineTest {
             scope,
             NotificationRepository(dao),
             bridge,
+            null,
             redactor,
             ruleEngine,
             PassThroughClassifier()

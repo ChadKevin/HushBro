@@ -1,37 +1,47 @@
 package com.invictus.hushbro.ui.nav
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.invictus.hushbro.data.db.entity.NotificationEntity
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.data.repo.NotificationRepository
 import com.invictus.hushbro.data.repo.RuleRepository
 import com.invictus.hushbro.data.repo.StatsRepository
 import com.invictus.hushbro.service.ListenerBridge
-import com.invictus.hushbro.util.PermissionUtils
+import com.invictus.hushbro.ui.history.ChronicleScreen
+import com.invictus.hushbro.ui.home.HomeScreen
+import com.invictus.hushbro.ui.insights.InsightsScreen
+import com.invictus.hushbro.ui.rules.RulesScreen
+import com.invictus.hushbro.ui.settings.SettingsScreen
+import com.invictus.hushbro.util.CsvExporter
 
-sealed class Dest(val route: String, val label: String) {
-    data object Home : Dest("home", "Home")
-    data object Chronicle : Dest("chronicle", "Chronicle")
-    data object Rules : Dest("rules", "Rules")
-    data object Insights : Dest("insights", "Insights")
-    data object Settings : Dest("settings", "Settings")
-}
-
-val destinations = listOf(Dest.Home, Dest.Chronicle, Dest.Rules, Dest.Insights, Dest.Settings)
+private data class Destination(val route: String, val label: String, val icon: ImageVector)
+private val destinations = listOf(
+    Destination("home", "Home", Icons.Filled.Home),
+    Destination("chronicle", "Chronicle", Icons.Filled.Search),
+    Destination("rules", "Rules", Icons.Filled.CheckCircle),
+    Destination("insights", "Insights", Icons.Filled.Info),
+    Destination("settings", "Settings", Icons.Filled.Settings)
+)
 
 @Composable
 fun HushBroNav(
@@ -40,36 +50,27 @@ fun HushBroNav(
     listenerBridge: ListenerBridge,
     ruleRepository: RuleRepository,
     statsRepository: StatsRepository,
+    csvExporter: CsvExporter,
     isAccessGranted: Boolean,
     onGrantClick: () -> Unit
 ) {
     val navController = rememberNavController()
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { BottomBar(navController) }
     ) { padding ->
-        NavHost(navController = navController, startDestination = Dest.Home.route) {
-            composable(Dest.Home.route) {
-                com.invictus.hushbro.ui.home.HomeScreen(
-                    notificationRepository = notificationRepository,
-                    statsRepository = statsRepository,
-                    listenerBridge = listenerBridge,
-                    isAccessGranted = isAccessGranted,
-                    onGrantClick = onGrantClick,
-                    onNavigate = { navController.navigate(it) }
-                )
+        NavHost(
+            navController = navController,
+            startDestination = "home",
+            modifier = androidx.compose.ui.Modifier.padding(padding)
+        ) {
+            composable("home") {
+                 HomeScreen(notificationRepository, statsRepository, listenerBridge, isAccessGranted, onGrantClick) { navController.navigate(it) }
             }
-            composable(Dest.Chronicle.route) {
-                com.invictus.hushbro.ui.history.ChronicleScreen(notificationRepository)
-            }
-            composable(Dest.Rules.route) {
-                com.invictus.hushbro.ui.rules.RulesScreen(ruleRepository)
-            }
-            composable(Dest.Insights.route) {
-                com.invictus.hushbro.ui.insights.InsightsScreen(statsRepository, notificationRepository)
-            }
-            composable(Dest.Settings.route) {
-                com.invictus.hushbro.ui.settings.SettingsScreen(settingsStore)
-            }
+            composable("chronicle") { ChronicleScreen(notificationRepository) }
+            composable("rules") { RulesScreen(ruleRepository) }
+            composable("insights") { InsightsScreen(statsRepository, notificationRepository) }
+            composable("settings") { SettingsScreen(settingsStore, csvExporter) }
         }
     }
 }
@@ -78,13 +79,29 @@ fun HushBroNav(
 private fun BottomBar(navController: NavHostController) {
     val backStack by navController.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
-    NavigationBar {
-        destinations.forEach { d ->
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.primary
+    ) {
+        destinations.forEach { destination ->
             NavigationBarItem(
-                selected = current == d.route,
-                onClick = { navController.navigate(d.route) { popUpTo(navController.graph.startDestinationId) { saveState = true }; launchSingleTop = true; restoreState = true } },
-                icon = { Icon(androidx.compose.material.icons.Icons.Filled.Home, contentDescription = d.label) },
-                label = { Text(d.label) }
+                selected = current == destination.route,
+                onClick = {
+                    navController.navigate(destination.route) {
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                icon = { Icon(destination.icon, contentDescription = destination.label) },
+                label = { Text(destination.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
         }
     }

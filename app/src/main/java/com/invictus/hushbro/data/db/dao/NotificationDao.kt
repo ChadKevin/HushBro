@@ -80,7 +80,10 @@ interface NotificationDao {
     @Query("SELECT * FROM notifications WHERE status = 'HELD' AND postTime <= :upToTime ORDER BY postTime ASC")
     suspend fun getHeldForDigest(upToTime: Long): List<NotificationEntity>
 
-    @Query("DELETE FROM notifications WHERE postTime < :timestamp")
+    @Query("DELETE FROM notifications WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM notifications WHERE postTime < :timestamp AND status != 'MUTED'")
     suspend fun deleteOlderThan(timestamp: Long): Int
 
     @Query("SELECT * FROM notifications WHERE id = :id")
