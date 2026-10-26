@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -36,9 +38,12 @@ import androidx.work.WorkManager
 import com.invictus.hushbro.data.db.entity.NotificationEntity
 import com.invictus.hushbro.data.db.model.NotificationStatus
 import com.invictus.hushbro.data.repo.NotificationRepository
+import com.invictus.hushbro.ui.components.AutumnDivider
+import com.invictus.hushbro.ui.components.CategoryChip
 import com.invictus.hushbro.ui.components.EmptyState
 import com.invictus.hushbro.ui.components.NotificationCard
 import com.invictus.hushbro.ui.components.ScreenHeader
+import com.invictus.hushbro.ui.components.StatusChip
 import com.invictus.hushbro.work.SnoozeWorker
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -76,38 +81,54 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text("Search app, title, or message") },
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+            label = { Text("Search notifications") },
+            leadingIcon = { Text("🔍", style = MaterialTheme.typography.titleMedium) },
+            modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
-            ChronicleFilter.values().take(3).forEach { f -> FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f.label) }) }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ChronicleFilter.values().forEach { f ->
+                FilterChip(
+                    selected = filter == f,
+                    onClick = { filter = f },
+                    label = { Text(f.label, style = MaterialTheme.typography.labelMedium) }
+                )
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
-            ChronicleFilter.values().drop(3).forEach { f -> FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f.label) }) }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            OutlinedButton(onClick = { scope.launch { notificationRepository.markAllRead() } }, modifier = Modifier.weight(1f)) { Text("Mark all read") }
-            TextButton(onClick = { confirmClear = true }) { Text("Clear history", color = MaterialTheme.colorScheme.error) }
-        }
+        Spacer(Modifier.height(12.dp))
+        AutumnDivider()
+        Spacer(Modifier.height(12.dp))
         if (filtered.isEmpty()) {
-            EmptyState("Nothing here yet", if (query.isBlank()) "New notifications will show up in your journal." else "Try a different search or filter.", Modifier.fillMaxWidth())
+            EmptyState("Nothing here yet", "Notifications will appear in your journal once you grant notification access.")
         } else {
-            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(filtered, key = { it.id }) { n ->
                     NotificationCard(
                         appLabel = n.appLabel,
                         title = n.title,
                         body = n.text,
-                        metadata = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(n.postTime)),
+                        metadata = DateFormat.getDateTimeInstance().format(Date(n.postTime)),
                         unread = !n.isRead,
-                        onClick = {
-                            selected = n
-                            scope.launch { notificationRepository.markRead(n.id) }
-                        }
+                        onClick = { selected = n },
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        when {
+                            n.isImportant -> StatusChip("important")
+                            n.status == NotificationStatus.MUTED -> StatusChip("muted")
+                            n.status == NotificationStatus.HELD -> StatusChip("held")
+                            n.status == NotificationStatus.SNOOZED -> StatusChip("snoozed")
+                            n.status == NotificationStatus.DIGESTED -> StatusChip("digested")
+                            else -> StatusChip("kept")
+                        }
+                    }
                 }
             }
         }

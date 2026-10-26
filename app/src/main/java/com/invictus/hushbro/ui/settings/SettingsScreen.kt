@@ -38,6 +38,7 @@ import androidx.work.WorkManager
 import com.invictus.hushbro.data.db.model.NotificationTag
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.notify.Channels
+import com.invictus.hushbro.ui.components.AutumnDivider
 import com.invictus.hushbro.ui.components.ScreenHeader
 import com.invictus.hushbro.work.DigestWorker
 import com.invictus.hushbro.util.CsvExporter
@@ -108,6 +109,7 @@ fun SettingsScreen(settingsStore: SettingsStore, csvExporter: CsvExporter) {
                     }
                 }
             }
+            AutumnDivider()
 
             SettingsCard("Quiet hours", "Notifications arriving during this window are held for a later digest, unless a mute rule matches.") {
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -131,6 +133,7 @@ fun SettingsScreen(settingsStore: SettingsStore, csvExporter: CsvExporter) {
                     }, modifier = Modifier.weight(1f)) { Text("Ends ${formatMinutes(s.quietHoursEnd)}") }
                 }
             }
+            AutumnDivider()
 
             SettingsCard("Your data", "Your notification journal is stored locally. Export only to a location you choose.") {
                 Button(onClick = { exportLauncher.launch("hushbro_export.csv") }, modifier = Modifier.fillMaxWidth()) { Text("Export notification history (CSV)") }

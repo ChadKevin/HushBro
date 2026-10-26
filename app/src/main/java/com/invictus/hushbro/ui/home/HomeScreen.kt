@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -23,12 +24,14 @@ import androidx.compose.ui.unit.dp
 import com.invictus.hushbro.data.repo.NotificationRepository
 import com.invictus.hushbro.data.repo.StatsRepository
 import com.invictus.hushbro.service.ListenerBridge
+import com.invictus.hushbro.ui.components.AutumnDivider
+import com.invictus.hushbro.ui.components.CoffeeSteam
 import com.invictus.hushbro.ui.components.EmptyState
-import com.invictus.hushbro.ui.components.MetricCard
+import com.invictus.hushbro.ui.components.HeroCard
 import com.invictus.hushbro.ui.components.NotificationCard
 import com.invictus.hushbro.ui.components.ScreenHeader
 import com.invictus.hushbro.ui.components.SectionHeader
-import com.invictus.hushbro.ui.components.WarmCard
+import com.invictus.hushbro.ui.components.StatCard
 import com.invictus.hushbro.ui.onboarding.NotificationAccessBanner
 import java.text.DateFormat
 import java.util.Date
@@ -54,31 +57,31 @@ fun HomeScreen(
     ) {
         item {
             Spacer(Modifier.height(12.dp))
-            ScreenHeader("A little more peace.", "Your notifications, with room to breathe.")
-            WarmCard {
-                Text("YOUR QUIET CORNER", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
-                Spacer(Modifier.height(5.dp))
-                Text("Less noise. More you.", style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(5.dp))
-                Text("HushBro keeps a local journal of notifications and lets your rules decide what deserves attention.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HeroCard(
+                title = "A little more peace.",
+                subtitle = "Your notifications, with room to breathe.",
+                accent = MaterialTheme.colorScheme.tertiary
+            ) {
+                CoffeeSteam(modifier = Modifier.width(40.dp), count = 3)
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             NotificationAccessBanner(isAccessGranted = isAccessGranted, isListenerConnected = connected, onGrantClick = onGrantClick)
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Captured", notifications.size.toString(), "Saved on this device", Modifier.weight(1f))
-                MetricCard("Unread", unread.toString(), "Waiting in your journal", Modifier.weight(1f))
+                StatCard("Captured", notifications.size.toString(), "Saved on this device", "☕", Modifier.weight(1f))
+                StatCard("Unread", unread.toString(), "Waiting in your journal", "✨", Modifier.weight(1f))
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Apps", summaries.size.toString(), "Apps with history", Modifier.weight(1f))
-                MetricCard("Held", held.toString(), "Waiting for digest", Modifier.weight(1f))
+                StatCard("Apps", summaries.size.toString(), "Apps with history", "📱", Modifier.weight(1f))
+                StatCard("Held", held.toString(), "Waiting for digest", "⏳", Modifier.weight(1f))
             }
             SectionHeader("A few useful things")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(onClick = { onNavigate("rules") }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { Text("Create a rule") }
                 OutlinedButton(onClick = { onNavigate("settings") }, modifier = Modifier.weight(1f)) { Text("Preferences") }
             }
+            AutumnDivider()
             SectionHeader("Recently captured", "${notifications.size} total")
         }
         if (notifications.isEmpty()) {

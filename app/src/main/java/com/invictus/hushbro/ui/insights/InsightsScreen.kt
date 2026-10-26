@@ -20,8 +20,9 @@ import androidx.compose.ui.unit.dp
 import com.invictus.hushbro.data.db.model.NotificationStatus
 import com.invictus.hushbro.data.repo.NotificationRepository
 import com.invictus.hushbro.data.repo.StatsRepository
+import com.invictus.hushbro.ui.components.AutumnDivider
 import com.invictus.hushbro.ui.components.EmptyState
-import com.invictus.hushbro.ui.components.MetricCard
+import com.invictus.hushbro.ui.components.StatCard
 import com.invictus.hushbro.ui.components.ScreenHeader
 import com.invictus.hushbro.ui.components.SectionHeader
 import com.invictus.hushbro.ui.components.WarmCard
@@ -40,19 +41,20 @@ fun InsightsScreen(statsRepository: StatsRepository, notificationRepository: Not
             Spacer(Modifier.height(12.dp))
             ScreenHeader("Your patterns", "A gentle overview based on the notifications stored on this device.")
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Captured", notifications.size.toString(), "All stored records", Modifier.weight(1f))
-                MetricCard("Unread", unread.toString(), "Not opened in Chronicle", Modifier.weight(1f))
+                StatCard("Captured", notifications.size.toString(), "All stored records", "☕", Modifier.weight(1f))
+                StatCard("Unread", unread.toString(), "Not opened in Chronicle", "✨", Modifier.weight(1f))
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Muted", muted.toString(), "Matched by mute rules", Modifier.weight(1f))
-                MetricCard("Held", held.toString(), "Waiting for a digest", Modifier.weight(1f))
+                StatCard("Muted", muted.toString(), "Matched by mute rules", "🔇", Modifier.weight(1f))
+                StatCard("Held", held.toString(), "Waiting for a digest", "⏳", Modifier.weight(1f))
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Important", important.toString(), "Marked by rules", Modifier.weight(1f))
-                MetricCard("Apps", summaries.size.toString(), "Apps represented", Modifier.weight(1f))
+                StatCard("Important", important.toString(), "Marked by rules", "⭐", Modifier.weight(1f))
+                StatCard("Apps", summaries.size.toString(), "Apps represented", "📱", Modifier.weight(1f))
             }
+            AutumnDivider()
             SectionHeader("Apps in your journal")
         }
         if (summaries.isEmpty()) {
