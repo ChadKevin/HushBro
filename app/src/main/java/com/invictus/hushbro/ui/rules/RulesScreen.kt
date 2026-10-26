@@ -8,8 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,22 +58,22 @@ fun RulesScreen(ruleRepository: RuleRepository) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
-        ScreenHeader("Your rules", "Simple, first-match rules for the notifications you want to manage.")
+        ScreenHeader("Rules", "Decide what gets your attention and what can wait.")
         Button(
             onClick = { creating = true; editorRule = null },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) { Text("＋  Create a rule") }
+        ) { Icon(Icons.Filled.Add, contentDescription = null); Spacer(Modifier.size(8.dp)); Text("Create a rule") }
         Spacer(Modifier.height(12.dp))
         if (rules.isEmpty()) {
-            EmptyState("Start with one small rule", "For example, mute promotional notifications that contain a keyword.")
+            EmptyState("Set your first rule", "Choose a keyword or app, then decide whether to mute it or mark it important.")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(rules.sortedBy { it.priority }, key = { it.id }) { rule ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),\n                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         Column(Modifier.padding(16.dp)) {
@@ -109,7 +115,7 @@ fun RulesScreen(ruleRepository: RuleRepository) {
                                         val previous = sorted[index - 1]
                                         scope.launch { ruleRepository.swapPriority(rule.id, rule.priority, previous.id, previous.priority) }
                                     }
-                                }, enabled = rules.sortedBy { it.priority }.indexOfFirst { it.id == rule.id } > 0) { Text("↑") }
+                                }, enabled = rules.sortedBy { it.priority }.indexOfFirst { it.id == rule.id } > 0) { Icon(Icons.Filled.ArrowUpward, contentDescription = "Move rule up", modifier = Modifier.size(18.dp)) }
                                 OutlinedButton(onClick = {
                                     val sorted = rules.sortedBy { it.priority }
                                     val index = sorted.indexOfFirst { it.id == rule.id }
@@ -117,7 +123,7 @@ fun RulesScreen(ruleRepository: RuleRepository) {
                                         val next = sorted[index + 1]
                                         scope.launch { ruleRepository.swapPriority(rule.id, rule.priority, next.id, next.priority) }
                                     }
-                                }, enabled = rules.sortedBy { it.priority }.indexOfFirst { it.id == rule.id } < rules.lastIndex) { Text("↓") }
+                                }, enabled = rules.sortedBy { it.priority }.indexOfFirst { it.id == rule.id } < rules.lastIndex) { Icon(Icons.Filled.ArrowDownward, contentDescription = "Move rule down", modifier = Modifier.size(18.dp)) }
                                 TextButton(onClick = { deletingRule = rule }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
                             }
                         }
