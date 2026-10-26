@@ -249,13 +249,13 @@ fun FeatureCard(icon: String, title: String, description: String, onClick: (() -
 @Composable
 fun StatCard(label: String, value: String, detail: String, icon: String, modifier: Modifier = Modifier) {
     val vector = when (icon.lowercase()) {
-        "☕", "captured", "notifications" -> Icons.Filled.Notifications
-        "✨", "unread" -> Icons.Filled.CheckCircle
-        "📱", "apps" -> Icons.Filled.Smartphone
-        "⏳", "held" -> Icons.Filled.Schedule
-        "🔇", "muted" -> Icons.Filled.VolumeOff
-        "⭐", "important" -> Icons.Filled.Star
-        "📊", "insights" -> Icons.Filled.BarChart
+        "captured", "notifications" -> Icons.Filled.Notifications
+        "unread" -> Icons.Filled.CheckCircle
+        "apps" -> Icons.Filled.Smartphone
+        "held" -> Icons.Filled.Schedule
+        "muted" -> Icons.Filled.VolumeOff
+        "important" -> Icons.Filled.Star
+        "insights" -> Icons.Filled.BarChart
         else -> Icons.Filled.Notifications
     }
     Card(
