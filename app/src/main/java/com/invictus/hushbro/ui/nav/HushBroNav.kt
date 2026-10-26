@@ -3,8 +3,8 @@ package com.invictus.hushbro.ui.nav
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,7 +40,7 @@ private val destinations = listOf(
     Destination("home", "Home", Icons.Filled.Home),
     Destination("chronicle", "Chronicle", Icons.Filled.Search),
     Destination("rules", "Rules", Icons.Filled.CheckCircle),
-    Destination("insights", "Insights", Icons.Filled.Info),
+    Destination("insights", "Insights", Icons.Filled.BarChart),
     Destination("settings", "Settings", Icons.Filled.Settings)
 )
 
@@ -81,7 +82,8 @@ private fun BottomBar(navController: NavHostController) {
     val current = backStack?.destination?.route
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.primary
+        contentColor = MaterialTheme.colorScheme.primary,
+        tonalElevation = 0.dp
     ) {
         destinations.forEach { destination ->
             NavigationBarItem(
