@@ -29,7 +29,9 @@ class HushBroListenerService : NotificationListenerService() {
         super.onListenerConnected()
         Log.i(TAG, "Notification listener connected successfully")
         listenerBridge.attachService(this)
-        backfillActiveNotifications()
+        runCatching { backfillActiveNotifications() }
+            .onFailure { Log.w(TAG, "Back-fill of active notifications failed", it) }
+        listenerBridge.updateActiveCount()
     }
 
     override fun onListenerDisconnected() {
@@ -90,8 +92,8 @@ class HushBroListenerService : NotificationListenerService() {
         // Ignore HushBro's own notifications (digests, reminders)
         if (pkg == packageName) return null
 
-        // Ignore ongoing notifications (media players, foreground services)
-        if (sbn.isOngoing) return null
+        // Keep live/ongoing notifications (media players, foreground services) accessible
+        // so the app can observe notifications currently in the shade.
 
         val notification = sbn.notification ?: return null
 

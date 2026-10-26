@@ -1,5 +1,6 @@
 package com.invictus.hushbro.service
 
+import android.service.notification.StatusBarNotification
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,5 +48,7 @@ open class ListenerBridge @Inject constructor() {
         activeService?.cancelNotification(key)
     }
 
-    fun getActiveNotifications() = activeService?.activeNotifications ?: emptyArray()
+    fun getActiveNotifications(): Array<StatusBarNotification> = runCatching {
+        activeService?.activeNotifications ?: emptyArray()
+    }.getOrDefault(emptyArray())
 }
