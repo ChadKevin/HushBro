@@ -13,6 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -30,7 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.dp\nimport androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -77,7 +81,7 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
-        ScreenHeader("Chronicle", "A searchable journal of what reached your phone.")
+        Text("YOUR NOTIFICATION JOURNAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)\n        ScreenHeader("Chronicle", "Find the signal in everything that reached your phone.")
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -103,7 +107,7 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
         AutumnDivider()
         Spacer(Modifier.height(12.dp))
         if (filtered.isEmpty()) {
-            EmptyState("Nothing here yet", "Notifications will appear in your journal once you grant notification access.")
+            EmptyState(if (query.isNotBlank()) "No matching notifications" else "Your Chronicle is quiet", if (query.isNotBlank()) "Try another keyword or switch to a different filter." else "Captured notifications will be organised here so you can return to them when it suits you.")
         } else {
             LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(filtered, key = { it.id }) { n ->
