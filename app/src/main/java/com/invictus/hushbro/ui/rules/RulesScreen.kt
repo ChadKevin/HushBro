@@ -68,7 +68,7 @@ fun RulesScreen(ruleRepository: RuleRepository) {
         if (rules.isEmpty()) {
             EmptyState("Set your first rule", "Choose a keyword or app, then decide whether to mute it or mark it important.")
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(rules.sortedBy { it.priority }, key = { it.id }) { rule ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
