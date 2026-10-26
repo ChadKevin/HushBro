@@ -13,6 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -31,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -77,12 +81,15 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
-        ScreenHeader("Chronicle", "A searchable journal of what reached your phone.")
+        Text("YOUR NOTIFICATION JOURNAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        ScreenHeader("Chronicle", "Find the signal in everything that reached your phone.")
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            label = { Text("Search notifications") },
-            leadingIcon = { Text("🔍", style = MaterialTheme.typography.titleMedium) },
+            placeholder = { Text("Search apps, messages, keywords") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(12.dp))
@@ -99,13 +106,15 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
                 )
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
+        Text("${filtered.size} ENTRIES", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(10.dp))
         AutumnDivider()
         Spacer(Modifier.height(12.dp))
         if (filtered.isEmpty()) {
-            EmptyState("Nothing here yet", "Notifications will appear in your journal once you grant notification access.")
+            EmptyState(if (query.isNotBlank()) "No matching notifications" else "Your Chronicle is quiet", if (query.isNotBlank()) "Try another keyword or switch to a different filter." else "Captured notifications will be organised here so you can return to them when it suits you.")
         } else {
-            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(filtered, key = { it.id }) { n ->
                     NotificationCard(
                         appLabel = n.appLabel,
