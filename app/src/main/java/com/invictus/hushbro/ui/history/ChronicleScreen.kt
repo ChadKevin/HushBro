@@ -114,7 +114,7 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
         if (filtered.isEmpty()) {
             EmptyState(if (query.isNotBlank()) "No matching notifications" else "Your Chronicle is quiet", if (query.isNotBlank()) "Try another keyword or switch to a different filter." else "Captured notifications will be organised here so you can return to them when it suits you.")
         } else {
-            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(filtered, key = { it.id }) { n ->
                     NotificationCard(
                         appLabel = n.appLabel,
