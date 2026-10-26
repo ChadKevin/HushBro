@@ -1,6 +1,9 @@
 package com.invictus.hushbro
 
+import android.content.ComponentName
+import android.os.Build
 import android.os.Bundle
+import android.service.notification.NotificationListenerService
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
@@ -12,6 +15,7 @@ import com.invictus.hushbro.data.repo.NotificationRepository
 import com.invictus.hushbro.data.repo.RuleRepository
 import com.invictus.hushbro.data.repo.StatsRepository
 import com.invictus.hushbro.notify.DigestManager
+import com.invictus.hushbro.service.HushBroListenerService
 import com.invictus.hushbro.service.ListenerBridge
 import com.invictus.hushbro.ui.nav.HushBroNav
 import com.invictus.hushbro.ui.theme.AutumnTheme
@@ -55,5 +59,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         notificationAccessGranted = PermissionUtils.isNotificationAccessGranted(this)
+        if (notificationAccessGranted && !listenerBridge.isListenerConnected.value) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                runCatching {
+                    NotificationListenerService.requestRebind(
+                        ComponentName(this@MainActivity, HushBroListenerService::class.java)
+                    )
+                }
+            }
+        }
+        listenerBridge.updateActiveCount()
     }
 }

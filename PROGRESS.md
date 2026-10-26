@@ -5,6 +5,13 @@
 - Last completed milestone: Step 4 — Notification access and listener service.
 - Current milestone: Step 4 complete. Ready for Step 5 — Buffered pipeline and batch writer.
 - Overall status: In progress.
+
+## Live notification access fix
+- Made `HushBroListenerService` back-fill robust (wrapped in try/catch, refreshes active count).
+- Stopped dropping ongoing/live notifications in `toRawNotification` so currently active notifications are captured.
+- Hardened `ListenerBridge.getActiveNotifications()` with runCatching.
+- Added service rebind + active-count refresh in `MainActivity.onResume()` when access is granted but listener not connected.
+- Build: assembleDebug PASSED, testDebugUnitTest PASSED.
 - GitHub repository: Step 1–3 changes pushed to GitHub (`main`). Step 4 implemented and tested locally.
 - Last verified build: `.\gradlew.bat test assembleDebug` succeeded with exit code 0.
 - Follow-up: Fixed broken AutumnTheme/AutumnComponents compile errors and applied AutumnTheme in MainActivity. Build and unit tests pass.
