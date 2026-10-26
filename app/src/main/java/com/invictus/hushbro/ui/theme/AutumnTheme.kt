@@ -13,69 +13,124 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// ── Coffee & Autumn color palette ─────────────────────────────────────────
+// background: warm cream paper
+// surface:    latte foam white
+// primary:    espresso brown
+// secondary:  sage leaf green
+// tertiary:   cinnamon / terracotta accent
+// error:      burnt umber
+
 @Stable
 val AutumnColors = ColorScheme(
-    background = Color(0xFFF7F2E9),
-    onBackground = Color(0xFF382E29),
-    surface = Color(0xFFFFFCF6),
-    surfaceContainerHighest = Color(0xFFF1E7D8),
-    surfaceContainer = Color(0xFFE9DECC),
-    surfaceContainerHigh = Color(0xFFEFE4D3),
-    surfaceContainerLow = Color(0xFFF5EEE3),
-    surfaceContainerLowest = Color(0xFFFFFCF6),
-    surfaceVariant = Color(0xFFE5D9CA),
-    onSurfaceVariant = Color(0xFF81766C),
-    primary = Color(0xFF795548),
+    background = Color(0xFFFAF6EF),
+    onBackground = Color(0xFF3E2F23),
+    surface = Color(0xFFFFFFFF),
+    surfaceContainerHighest = Color(0xFFEDE0CC),
+    surfaceContainer = Color(0xFFE5D6C2),
+    surfaceContainerHigh = Color(0xFFEADCCB),
+    surfaceContainerLow = Color(0xFFF3E9DA),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFFE2D3C0),
+    onSurfaceVariant = Color(0xFF8C7A6A),
+    primary = Color(0xFF6F4E37),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFEFE2D2),
-    onPrimaryContainer = Color(0xFF3E2723),
-    secondary = Color(0xFF87967A),
+    primaryContainer = Color(0xFFF3E5D7),
+    onPrimaryContainer = Color(0xFF4A3325),
+    secondary = Color(0xFF8A9A7D),
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFD8E0D3),
-    onSecondaryContainer = Color(0xFF382E29),
+    secondaryContainer = Color(0xFFDEE6D2),
+    onSecondaryContainer = Color(0xFF3E2F23),
     tertiary = Color(0xFFC87955),
     onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFF5D7C8),
-    onTertiaryContainer = Color(0xFF4E342E),
-    error = Color(0xFFB64E42),
+    tertiaryContainer = Color(0xFFF7D9C5),
+    onTertiaryContainer = Color(0xFF5E3A2A),
+    error = Color(0xFF9C4A42),
     onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFF9D6D3),
-    onErrorContainer = Color(0xFF7A2E29),
-    onSurface = Color(0xFF382E29),
-    outline = Color(0xFFE5D9CA),
-    outlineVariant = Color(0xFFE5D9CA),
-    inverseSurface = Color(0xFF382E29),
-    inverseOnSurface = Color(0xFFF7F2E9),
+    errorContainer = Color(0xFFFAE4E0),
+    onErrorContainer = Color(0xFF6E2E28),
+    onSurface = Color(0xFF3E2F23),
+    outline = Color(0xFFE2D3C0),
+    outlineVariant = Color(0xFFEDE0CC),
+    inverseSurface = Color(0xFF3E2F23),
+    inverseOnSurface = Color(0xFFFAF6EF),
     inversePrimary = Color(0xFFC87955),
-    scrim = Color(0x803E2723),
-    surfaceTint = Color(0xFF795548),
-    surfaceBright = Color(0xFFFFFCF6),
-    surfaceDim = Color(0xFFF1E7D8),
+    scrim = Color(0x803E2F23),
+    surfaceTint = Color(0xFF6F4E37),
+    surfaceBright = Color(0xFFFFFFFF),
+    surfaceDim = Color(0xFFEDE0CC),
 )
 @Stable
 val AutumnTypography = Typography(
-    displayLarge = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.W400, fontSize = 32.sp, lineHeight = 38.sp, letterSpacing = (-0.25).sp, color = Color(0xFF382E29)),
-    displayMedium = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.W500, fontSize = 28.sp, lineHeight = 35.sp, letterSpacing = 0.sp, color = Color(0xFF382E29)),
-    displaySmall = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.W500, fontSize = 24.sp, lineHeight = 31.sp, color = Color(0xFF382E29)),
-    headlineLarge = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.W600, fontSize = 22.sp, lineHeight = 28.sp, color = Color(0xFF382E29)),
-    headlineMedium = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.W600, fontSize = 20.sp, lineHeight = 26.sp, color = Color(0xFF382E29)),
-    headlineSmall = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.W500, fontSize = 18.sp, lineHeight = 24.sp, color = Color(0xFF382E29)),
-    titleLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W600, fontSize = 18.sp, lineHeight = 24.sp, color = Color(0xFF382E29)),
-    titleMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500, fontSize = 16.sp, lineHeight = 22.sp, color = Color(0xFF382E29)),
-    titleSmall = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF382E29)),
-    bodyLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400, fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF382E29)),
-    bodyMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400, fontSize = 14.sp, lineHeight = 21.sp, color = Color(0xFF382E29)),
-    bodySmall = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400, fontSize = 12.sp, lineHeight = 18.sp, color = Color(0xFF81766C)),
-    labelLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF382E29)),
-    labelMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500, fontSize = 12.sp, lineHeight = 16.sp, color = Color(0xFF81766C)),
-    labelSmall = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400, fontSize = 10.sp, lineHeight = 14.sp, color = Color(0xFF81766C)),
+    displayLarge = TextStyle(
+        fontFamily = FontFamily.Serif, fontWeight = FontWeight.W400,
+        fontSize = 40.sp, lineHeight = 48.sp, letterSpacing = (-0.5).sp,
+        color = Color(0xFF3E2F23)
+    ),
+    displayMedium = TextStyle(
+        fontFamily = FontFamily.Serif, fontWeight = FontWeight.W500,
+        fontSize = 34.sp, lineHeight = 42.sp, letterSpacing = (-0.25).sp,
+        color = Color(0xFF3E2F23)
+    ),
+    displaySmall = TextStyle(
+        fontFamily = FontFamily.Serif, fontWeight = FontWeight.W500,
+        fontSize = 28.sp, lineHeight = 36.sp, color = Color(0xFF3E2F23)
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = FontFamily.Serif, fontWeight = FontWeight.W600,
+        fontSize = 26.sp, lineHeight = 32.sp, color = Color(0xFF3E2F23)
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = FontFamily.Serif, fontWeight = FontWeight.W600,
+        fontSize = 22.sp, lineHeight = 28.sp, color = Color(0xFF3E2F23)
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.Serif, fontWeight = FontWeight.W500,
+        fontSize = 18.sp, lineHeight = 24.sp, color = Color(0xFF3E2F23)
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W600,
+        fontSize = 18.sp, lineHeight = 24.sp, color = Color(0xFF3E2F23)
+    ),
+    titleMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500,
+        fontSize = 16.sp, lineHeight = 22.sp, color = Color(0xFF3E2F23)
+    ),
+    titleSmall = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500,
+        fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF3E2F23)
+    ),
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400,
+        fontSize = 16.sp, lineHeight = 24.sp, color = Color(0xFF3E2F23)
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400,
+        fontSize = 14.sp, lineHeight = 21.sp, color = Color(0xFF3E2F23)
+    ),
+    bodySmall = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400,
+        fontSize = 12.sp, lineHeight = 18.sp, color = Color(0xFF8C7A6A)
+    ),
+    labelLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500,
+        fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF3E2F23)
+    ),
+    labelMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W500,
+        fontSize = 12.sp, lineHeight = 16.sp, color = Color(0xFF8C7A6A)
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.W400,
+        fontSize = 10.sp, lineHeight = 14.sp, color = Color(0xFF8C7A6A)
+    ),
 )
 
 @Stable
 val AutumnShapes = Shapes(
-    small = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-    medium = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-    large = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+    small = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+    medium = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+    large = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
 )
 
 @Composable

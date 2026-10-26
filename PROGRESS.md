@@ -151,3 +151,23 @@ Step 6 — (next milestone).
 - ChronicleScreen detail dialog now has a Remove button.
 - NotificationPipeline.settingsStore made nullable with null-safe access; logging calls wrapped in runCatching so unit tests don't crash on unmocked android.util.Log.
 - Build: testDebugUnitTest PASSED.
+
+## UI Theme: Autumn/Coffee (current)
+- Refined `AutumnTheme.kt` color palette: espresso brown primary, cream background, latte surface, sage green secondary, cinnamon tertiary, burnt umber error. Added detailed color role comments.
+- Enhanced `AutumnTypography.kt`: Serif display/headline fonts for a warm editorial feel, SansSerif body for readability. Larger display sizes, refined line heights.
+- Updated `AutumnShapes.kt`: More rounded corners (12/20/28dp) for softer, coffee-shop aesthetic.
+- Added new components in `AutumnComponents.kt`:
+  - `HeroCard` — accent-colored featured card with title/subtitle and trailing content slot
+  - `CategoryChip` — category-colored chip (OTP/sage, PROMO/burnt umber, SOCIAL/espresso)
+  - `StatusChip` — status-colored chip (muted/held/snoozed/digested/kept)
+  - `FeatureCard` — icon + title + description card with optional chevron
+  - `StatCard` — metric card with emoji icon, value, label, and detail
+  - `AutumnDivider` — subtle outline divider
+  - `CoffeeSteam` — decorative steam lines above hero cards
+- Updated screens with new components:
+  - `HomeScreen` — HeroCard with coffee steam, StatCards with emojis, cleaner spacing
+  - `ChronicleScreen` — Search field with magnifying glass, FilterChip row, StatusChip on each notification, EmptyState
+  - `RulesScreen` — Primary-colored create button, CategoryChip for actions, styled Switch, elevation on cards
+  - `InsightsScreen` — StatCards with emojis, AutumnDivider between sections
+  - `SettingsScreen` — AutumnDivider between settings groups
+- Build: compileDebugKotlin PASSED, testDebugUnitTest PASSED (19 tests), assembleDebug PASSED.

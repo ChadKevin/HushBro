@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -35,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import com.invictus.hushbro.data.db.entity.RuleEntity
 import com.invictus.hushbro.data.db.model.RuleAction
 import com.invictus.hushbro.data.repo.RuleRepository
+import com.invictus.hushbro.ui.components.CategoryChip
 import com.invictus.hushbro.ui.components.EmptyState
+import com.invictus.hushbro.ui.components.FeatureCard
 import com.invictus.hushbro.ui.components.ScreenHeader
 import kotlinx.coroutines.launch
 
@@ -50,29 +53,53 @@ fun RulesScreen(ruleRepository: RuleRepository) {
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
         ScreenHeader("Your rules", "Simple, first-match rules for the notifications you want to manage.")
-        Button(onClick = { creating = true; editorRule = null }, modifier = Modifier.fillMaxWidth()) { Text("＋  Create a rule") }
+        Button(
+            onClick = { creating = true; editorRule = null },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) { Text("＋  Create a rule") }
         Spacer(Modifier.height(12.dp))
         if (rules.isEmpty()) {
             EmptyState("Start with one small rule", "For example, mute promotional notifications that contain a keyword.")
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(rules.sortedBy { it.priority }, key = { it.id }) { rule ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
-                        Column(Modifier.padding(15.dp)) {
+                        Column(Modifier.padding(16.dp)) {
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Column(Modifier.weight(1f)) {
                                     Text(rule.keyword, style = MaterialTheme.typography.titleLarge)
                                     Text(rule.appPackage?.takeIf { it.isNotBlank() } ?: "Any app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Switch(checked = rule.enabled, onCheckedChange = { enabled -> scope.launch { ruleRepository.upsert(rule.copy(enabled = enabled)) } })
+                                Switch(
+                                    checked = rule.enabled,
+                                    onCheckedChange = { enabled -> scope.launch { ruleRepository.upsert(rule.copy(enabled = enabled)) } },
+                                    colors = androidx.compose.material3.SwitchDefaults.colors(
+                                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
                             }
-                            Spacer(Modifier.height(5.dp))
-                            Text("${rule.action}  ·  Priority ${rule.priority + 1}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.height(10.dp))
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                CategoryChip(
+                                    category = rule.action.name.lowercase(),
+                                    onClick = null
+                                )
+                                Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Priority ${rule.priority + 1}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Spacer(Modifier.height(12.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedButton(onClick = { editorRule = rule; creating = false }, modifier = Modifier.weight(1f)) { Text("Edit") }
                                 OutlinedButton(onClick = {
