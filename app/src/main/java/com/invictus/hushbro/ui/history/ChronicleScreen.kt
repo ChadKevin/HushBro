@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -34,7 +33,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp\nimport androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -81,12 +81,15 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         Spacer(Modifier.height(12.dp))
-        Text("YOUR NOTIFICATION JOURNAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)\n        ScreenHeader("Chronicle", "Find the signal in everything that reached your phone.")
+        Text("YOUR NOTIFICATION JOURNAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        ScreenHeader("Chronicle", "Find the signal in everything that reached your phone.")
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            label = { Text("Search notifications") },
-            leadingIcon = { Text("🔍", style = MaterialTheme.typography.titleMedium) },
+            placeholder = { Text("Search apps, messages, keywords") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(12.dp))
@@ -103,7 +106,9 @@ fun ChronicleScreen(notificationRepository: NotificationRepository) {
                 )
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
+        Text("${filtered.size} ENTRIES", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(10.dp))
         AutumnDivider()
         Spacer(Modifier.height(12.dp))
         if (filtered.isEmpty()) {
