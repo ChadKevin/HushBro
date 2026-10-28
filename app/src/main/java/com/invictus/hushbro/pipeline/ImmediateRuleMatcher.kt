@@ -42,8 +42,8 @@ class ImmediateRuleMatcher @Inject constructor(
         if (!rulesLoaded) return null
 
         val redacted = redactor.redact(raw)
-        val haystack = (redacted.title.orEmpty() + " " + redacted.text.orEmpty())
-            .lowercase()
+        // Match the message body only; sender names and app titles should not trigger a message rule.
+        val haystack = redacted.text.orEmpty().lowercase()
 
         for (rule in enabledRules) {
             if (!rule.enabled) continue
