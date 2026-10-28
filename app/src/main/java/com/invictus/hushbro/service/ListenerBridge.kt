@@ -7,6 +7,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class ListenerTestState {
+    IDLE,
+    WAITING,
+    PASSED,
+    FAILED
+}
+
 @Singleton
 open class ListenerBridge @Inject constructor() {
 
@@ -15,6 +22,9 @@ open class ListenerBridge @Inject constructor() {
 
     private val _activeNotificationCount = MutableStateFlow(0)
     val activeNotificationCount: StateFlow<Int> = _activeNotificationCount.asStateFlow()
+
+    private val _listenerTestState = MutableStateFlow(ListenerTestState.IDLE)
+    val listenerTestState: StateFlow<ListenerTestState> = _listenerTestState.asStateFlow()
 
     private var activeService: HushBroListenerService? = null
 
@@ -30,6 +40,20 @@ open class ListenerBridge @Inject constructor() {
         _activeNotificationCount.value = 0
     }
 
+    fun beginListenerTest() {
+        _listenerTestState.value = ListenerTestState.WAITING
+    }
+
+    fun markListenerTestPassed() {
+        _listenerTestState.value = ListenerTestState.PASSED
+    }
+
+    fun markListenerTestFailed() {
+        if (_listenerTestState.value == ListenerTestState.WAITING) {
+            _listenerTestState.value = ListenerTestState.FAILED
+        }
+    }
+
     fun updateActiveCount() {
         val service = activeService
         if (service != null) {
@@ -42,8 +66,7 @@ open class ListenerBridge @Inject constructor() {
         }
     }
 
-    // `open` (with the class above) so unit tests can subclass and record
-    // cancellation requests; production behavior is unchanged.
+    // Kept for non-listener pipeline callers and unit tests.
     open fun cancelNotificationByKey(key: String) {
         activeService?.cancelNotification(key)
     }
