@@ -66,7 +66,12 @@ import java.util.concurrent.TimeUnit
 private const val DIGEST_WORK_NAME = "hushbro_digest_periodic"
 
 @Composable
-fun SettingsScreen(\n    settingsStore: SettingsStore,\n    csvExporter: CsvExporter,\n    listenerBridge: ListenerBridge,\n    onGrantClick: () -> Unit\n) {
+fun SettingsScreen(
+    settingsStore: SettingsStore,
+    csvExporter: CsvExporter,
+    listenerBridge: ListenerBridge,
+    onGrantClick: () -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings by settingsStore.userSettingsFlow.collectAsState(initial = null)
