@@ -28,7 +28,7 @@ class DefaultRuleEngine(
         for (rule in effectiveRules.sortedBy { it.priority }) {
             if (!rule.enabled) continue
             if (rule.appPackage != null && rule.appPackage != raw.packageName) continue
-            val haystack = (redacted.title.orEmpty() + " " + redacted.text.orEmpty()).lowercase()
+            // Match the message body only so a sender/title containing the keyword does not mute an unrelated message.\n            val haystack = redacted.text.orEmpty().lowercase()
             val keyword = rule.keyword.trim()
             if (keyword.isNotEmpty() && !haystack.contains(keyword.lowercase())) continue
             return rule.action
