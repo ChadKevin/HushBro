@@ -2,11 +2,13 @@ package com.invictus.hushbro.service
 
 import android.app.Notification
 import android.content.ComponentName
-import android.content.pm.PackageManager
 import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.invictus.hushbro.data.db.model.RuleAction
+import com.invictus.hushbro.notify.ListenerTestNotification
+import com.invictus.hushbro.pipeline.ImmediateRuleMatcher
 import com.invictus.hushbro.pipeline.NotificationPipeline
 import com.invictus.hushbro.pipeline.RawNotification
 import dagger.hilt.android.AndroidEntryPoint
@@ -19,11 +21,9 @@ class HushBroListenerService : NotificationListenerService() {
         private const val TAG = "HushBroListener"
     }
 
-    @Inject
-    lateinit var listenerBridge: ListenerBridge
-
-    @Inject
-    lateinit var pipeline: NotificationPipeline
+    @Inject lateinit var listenerBridge: ListenerBridge
+    @Inject lateinit var pipeline: NotificationPipeline
+    @Inject lateinit var immediateRuleMatcher: ImmediateRuleMatcher
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -39,19 +39,17 @@ class HushBroListenerService : NotificationListenerService() {
         Log.w(TAG, "Notification listener disconnected; requesting rebind")
         listenerBridge.detachService()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            requestRebind(ComponentName(this, HushBroListenerService::class.java))
+            runCatching {
+                requestRebind(ComponentName(this, HushBroListenerService::class.java))
+            }.onFailure {
+                Log.w(TAG, "Could not request notification-listener rebind", it)
+            }
         }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-        val raw = toRawNotification(sbn)
-        if (raw != null) {
-            pipeline.enqueue(raw)
-            // Safe metadata only; never raw notification content per privacy rules.
-            Log.d(TAG, "Notification enqueued for buffered processing: pkg=${raw.packageName}, postTime=${raw.postTime}")
-        }
-        listenerBridge.updateActiveCount()
+        processNotification(sbn)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
@@ -62,45 +60,76 @@ class HushBroListenerService : NotificationListenerService() {
     }
 
     /**
-     * On every listener (re)connect the currently active notifications are
-     * enqueued so history is back-filled. The pipeline computes a stable
-     * (key, postTime, textHash) identity and the database's unique index drops
-     * rows that are already stored, so reconnecting never duplicates history.
+     * Evaluate a cached rule snapshot on the listener callback path. When a
+     * rule matches MUTE, request cancellation for this exact Android notification
+     * key before sending the record to the asynchronous persistence pipeline.
+     */
+    private fun processNotification(sbn: StatusBarNotification?) {
+        if (sbn == null) return
+
+        if (isListenerTestNotification(sbn)) {
+            runCatching { cancelNotification(sbn.key) }
+                .onFailure { Log.w(TAG, "Could not dismiss listener test notification", it) }
+            listenerBridge.markListenerTestPassed()
+            listenerBridge.updateActiveCount()
+            return
+        }
+
+        val raw = toRawNotification(sbn) ?: return
+        val rulesReady = immediateRuleMatcher.isReady()
+        val action = if (rulesReady) immediateRuleMatcher.evaluate(raw) else null
+
+        if (action == RuleAction.MUTE) {
+            // Cancel only this notification key, never every notification from the app.
+            runCatching { cancelNotification(sbn.key) }
+                .onFailure {
+                    Log.w(TAG, "Could not cancel matching notification key (pkg=${raw.packageName})", it)
+                }
+        }
+
+        // Persist asynchronously. Never issue a delayed cancellation for this
+        // callback: an app may reuse the same key for a later message.
+        val queued = raw.copy(
+            preEvaluatedAction = action,
+            rulesEvaluated = rulesReady,
+            listenerCallbackHandled = true
+        )
+        if (!pipeline.enqueue(queued)) {
+            Log.w(TAG, "Notification pipeline rejected an event (pkg=${raw.packageName}, postTime=${raw.postTime})")
+        }
+
+        listenerBridge.updateActiveCount()
+    }
+
+    private fun isListenerTestNotification(sbn: StatusBarNotification): Boolean =
+        sbn.packageName == packageName &&
+            sbn.tag == ListenerTestNotification.TAG &&
+            sbn.id == ListenerTestNotification.ID
+
+    /**
+     * On every listener (re)connect, process currently active notifications as
+     * well. Muted notifications are cancelled by their exact keys; saved history
+     * is deduplicated by the database's unique index.
      */
     private fun backfillActiveNotifications() {
-        var enqueued = 0
+        var processed = 0
         for (sbn in listenerBridge.getActiveNotifications()) {
-            val raw = toRawNotification(sbn)
-            if (raw != null && pipeline.enqueue(raw)) {
-                enqueued++
-            }
+            if (sbn.packageName == packageName) continue
+            processNotification(sbn)
+            processed++
         }
-        if (enqueued > 0) {
-            Log.d(TAG, "Back-filled $enqueued active notification(s); duplicates are dropped by the unique index")
+        if (processed > 0) {
+            Log.d(TAG, "Back-filled $processed active notification(s)")
         }
     }
 
-    /**
-     * Extracts the minimal fields a notification is reduced to before buffering.
-     * This is the ONLY work the listener callback performs: no Room queries, no
-     * regex, no rule evaluation, no file I/O and no suspending calls.
-     */
-    private fun toRawNotification(sbn: StatusBarNotification?): RawNotification? {
-        if (sbn == null) return null
+    private fun toRawNotification(sbn: StatusBarNotification): RawNotification? {
         val pkg = sbn.packageName ?: return null
-
-        // Ignore HushBro's own notifications (digests, reminders)
         if (pkg == packageName) return null
 
-        // Keep live/ongoing notifications (media players, foreground services) accessible
-        // so the app can observe notifications currently in the shade.
-
         val notification = sbn.notification ?: return null
-
-        // Ignore group summaries
         if ((notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return null
 
-        // Safe app label resolution with package name fallback
         val appLabel = runCatching {
             val appInfo = packageManager.getApplicationInfo(pkg, 0)
             packageManager.getApplicationLabel(appInfo).toString()
