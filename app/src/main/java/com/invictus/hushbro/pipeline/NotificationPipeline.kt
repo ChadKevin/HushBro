@@ -101,7 +101,8 @@ class NotificationPipeline @Inject constructor(
                         textHash = TextHash.of(redacted.title, redacted.text)
                     )
                 )
-                // Real listener callbacks cancel matching keys immediately. Keep the delayed fallback only for non-listener callers/tests.\n                if (action == RuleAction.MUTE && !raw.listenerCallbackHandled) listenerBridge.cancelNotificationByKey(raw.key)
+                // Real listener callbacks cancel matching keys immediately. Keep the delayed fallback only for non-listener callers/tests.
+                if (action == RuleAction.MUTE && !raw.listenerCallbackHandled) listenerBridge.cancelNotificationByKey(raw.key)
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
                 failed++
