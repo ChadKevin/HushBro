@@ -71,7 +71,7 @@ fun HushBroNav(
             composable("chronicle") { ChronicleScreen(notificationRepository) }
             composable("rules") { RulesScreen(ruleRepository) }
             composable("insights") { InsightsScreen(statsRepository, notificationRepository) }
-            composable("settings") { SettingsScreen(settingsStore, csvExporter) }
+            composable("settings") { SettingsScreen(settingsStore, csvExporter, listenerBridge, onGrantClick) }
         }
     }
 }

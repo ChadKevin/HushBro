@@ -81,7 +81,7 @@ class NotificationPipeline @Inject constructor(
             try {
                 val redacted = redactor.redact(raw)
                 val tag = classifier.classify(raw, redacted)
-                val action = ruleEngine.evaluate(raw, redacted)
+                val action = if (raw.rulesEvaluated) raw.preEvaluatedAction else ruleEngine.evaluate(raw, redacted)
                 val status = when {
                     action == RuleAction.MUTE -> NotificationStatus.MUTED
                     quietHoursActive -> NotificationStatus.HELD
@@ -101,7 +101,8 @@ class NotificationPipeline @Inject constructor(
                         textHash = TextHash.of(redacted.title, redacted.text)
                     )
                 )
-                if (action == RuleAction.MUTE) listenerBridge.cancelNotificationByKey(raw.key)
+                // Real listener callbacks cancel matching keys immediately. Keep the delayed fallback only for non-listener callers/tests.
+                if (action == RuleAction.MUTE && !raw.listenerCallbackHandled) listenerBridge.cancelNotificationByKey(raw.key)
             } catch (e: Throwable) {
                 if (e is CancellationException) throw e
                 failed++
