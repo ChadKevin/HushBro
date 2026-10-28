@@ -50,8 +50,11 @@ object ListenerTestNotification {
             .setOnlyAlertOnce(true)
             .setAutoCancel(false)
             .setOngoing(false)
-            .setSilent(true)
             .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notification.flags = notification.flags or Notification.FLAG_ONLY_ALERT_ONCE
+        }
 
         manager.notify(TAG, ID, notification)
     }
