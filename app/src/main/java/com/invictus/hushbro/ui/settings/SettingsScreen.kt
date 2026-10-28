@@ -1,9 +1,13 @@
 package com.invictus.hushbro.ui.settings
 
+import android.Manifest
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,10 +51,14 @@ import androidx.work.WorkManager
 import com.invictus.hushbro.data.db.model.NotificationTag
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.notify.Channels
+import com.invictus.hushbro.notify.ListenerTestNotification
+import com.invictus.hushbro.service.ListenerBridge
+import com.invictus.hushbro.service.ListenerTestState
 import com.invictus.hushbro.ui.components.AutumnDivider
 import com.invictus.hushbro.ui.components.ScreenHeader
 import com.invictus.hushbro.work.DigestWorker
 import com.invictus.hushbro.util.CsvExporter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -58,10 +66,45 @@ import java.util.concurrent.TimeUnit
 private const val DIGEST_WORK_NAME = "hushbro_digest_periodic"
 
 @Composable
-fun SettingsScreen(settingsStore: SettingsStore, csvExporter: CsvExporter) {
+fun SettingsScreen(
+    settingsStore: SettingsStore,
+    csvExporter: CsvExporter,
+    listenerBridge: ListenerBridge,
+    onGrantClick: () -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settings by settingsStore.userSettingsFlow.collectAsState(initial = null)
+    val listenerConnected by listenerBridge.isListenerConnected.collectAsState()
+    val listenerTestState by listenerBridge.listenerTestState.collectAsState()
+
+    val postListenerTest: () -> Unit = {
+        try {
+            listenerBridge.beginListenerTest()
+            ListenerTestNotification.post(context)
+            scope.launch {
+                delay(5_000L)
+                listenerBridge.markListenerTestFailed()
+            }
+        } catch (e: SecurityException) {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Allow notifications for HushBro to run the test.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Could not post the test notification.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) postListenerTest()
+        else {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Notification permission is needed for the test.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     LaunchedEffect(settings?.digestInterval) {
         settings?.digestInterval?.let { scheduleDigestWork(context, it) }
     }
@@ -86,6 +129,49 @@ fun SettingsScreen(settingsStore: SettingsStore, csvExporter: CsvExporter) {
         Spacer(Modifier.height(12.dp))
         Text("PREFERENCES  /  PRIVACY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         ScreenHeader("Settings", "Your device, your boundaries, your data.")
+
+        SettingsCard(
+            "Notification listener",
+            "Check that Android is connected to HushBro and that notification callbacks are reaching the app."
+        ) {
+            Text(
+                if (listenerConnected) "Status: Connected" else "Status: Disconnected",
+                style = MaterialTheme.typography.titleSmall,
+                color = if (listenerConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                when (listenerTestState) {
+                    ListenerTestState.IDLE -> "Self-test has not been run."
+                    ListenerTestState.WAITING -> "Waiting for HushBro to receive and dismiss its quiet test notification…"
+                    ListenerTestState.PASSED -> "Test passed. HushBro received the callback and dismissed the test notification."
+                    ListenerTestState.FAILED -> "No callback was confirmed. Check Notification Access in Android Settings, then try again."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = {
+                    if (Build.VERSION.SDK_INT >= 33 &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        postListenerTest()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Send test notification")
+            }
+            Spacer(Modifier.height(6.dp))
+            OutlinedButton(onClick = onGrantClick, modifier = Modifier.fillMaxWidth()) {
+                Text("Open Notification Access settings")
+            }
+        }
+        AutumnDivider()
+
         settings?.let { s ->
             SettingsCard("Digest schedule", "Choose when HushBro checks for notifications held by your rules.") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
