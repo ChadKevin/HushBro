@@ -12,8 +12,6 @@
 
 HushBro is an offline-first Android notification manager in active development. It captures notifications after you grant Android's Notification Access, applies local processing, and keeps a searchable journal in the app. The goal is to make a busy notification shade easier to manage without sending notification content to a HushBro server.
 
-> **Implementation note:** Feature statuses below describe the code currently in this repository. The project is still evolving; the build guide and progress log contain roadmap notes, and the progress log's opening status is out of sync with its later entries.
-
 ## Overview
 
 Messages, verification codes, promotions, and social updates all compete for attention. HushBro is designed to help you review that stream on your own schedule: use keyword rules, local categories, a searchable history, scheduled digests, and short snoozes to keep track of what matters.
