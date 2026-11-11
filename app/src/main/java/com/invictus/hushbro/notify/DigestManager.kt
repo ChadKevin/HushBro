@@ -17,28 +17,61 @@ class DigestManager @Inject constructor(
     private val notificationRepository: NotificationRepository,
     private val settingsStore: SettingsStore
 ) {
-    suspend fun sendDigest() {
-        val settings = settingsStore.userSettingsFlow.first()
-        if (settings.digestInterval == "OFF") return
-        val notifications = notificationRepository.getAllNotifications().first()
-        val eligible = notifications.filter {
-            it.status == NotificationStatus.HELD && it.tag.name in settings.digestTags
-        }
-        if (eligible.isEmpty()) return
+    companion object {
+        private const val PAGE_SIZE = 200
+        private const val UPDATE_CHUNK_SIZE = 400 // below SQLite's common 999-bind-variable limit
+        private const val DIGEST_NOTIFICATION_ID = 2001
+        private const val PREVIEW_LINES = 8
+    }
 
+    suspend fun sendDigest(force: Boolean = false) {
+        val settings = settingsStore.userSettingsFlow.first()
+        if ((!force && settings.digestInterval == "OFF") || settings.digestTags.isEmpty()) return
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val digestText = eligible.joinToString("\n") { item ->
-            val safeTitle = item.title?.takeIf { it.isNotBlank() } ?: "Notification"
-            "${item.appLabel}: $safeTitle"
+        if (!notificationManager.areNotificationsEnabled()) return
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val digestChannel = notificationManager.getNotificationChannel(Channels.CHANNEL_ID_DIGEST)
+            if (digestChannel?.importance == NotificationManager.IMPORTANCE_NONE) return
+        }
+
+        val now = System.currentTimeMillis()
+        val tags = settings.digestTags.toList()
+        val eligibleIds = ArrayList<Long>()
+        val preview = ArrayList<String>(PREVIEW_LINES)
+        var offset = 0
+
+        while (true) {
+            val page = notificationRepository.getHeldForDigestPage(now, tags, PAGE_SIZE, offset)
+            if (page.isEmpty()) break
+            for (item in page) {
+                eligibleIds.add(item.id)
+                if (preview.size < PREVIEW_LINES) {
+                    val safeTitle = item.title?.takeIf { it.isNotBlank() } ?: "Notification"
+                    preview.add("${item.appLabel}: $safeTitle")
+                }
+            }
+            if (page.size < PAGE_SIZE) break
+            offset += page.size
+        }
+        if (eligibleIds.isEmpty()) return
+
+        val lines = buildString {
+            append(preview.joinToString("\n"))
+            if (eligibleIds.size > PREVIEW_LINES) append("\n…and ${eligibleIds.size - PREVIEW_LINES} more. Open HushBro to review the full digest.")
         }
         val notification = NotificationCompat.Builder(context, Channels.CHANNEL_ID_DIGEST)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("HushBro Digest")
-            .setContentText("${eligible.size} notifications are ready")
-            .setStyle(NotificationCompat.BigTextStyle().bigText(digestText))
+            .setContentTitle("HushBro Digest · ${eligibleIds.size} notifications")
+            .setContentText("Held notifications are ready to review")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(lines))
             .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
             .build()
-        notificationManager.notify(2001, notification)
-        notificationRepository.updateStatusBatch(eligible.map { it.id }, NotificationStatus.DIGESTED)
+        notificationManager.notify(DIGEST_NOTIFICATION_ID, notification)
+
+        // Room/SQLite can reject one giant IN (...) statement on large histories.
+        eligibleIds.chunked(UPDATE_CHUNK_SIZE).forEach { ids ->
+            notificationRepository.updateStatusBatch(ids, NotificationStatus.DIGESTED)
+        }
     }
 }

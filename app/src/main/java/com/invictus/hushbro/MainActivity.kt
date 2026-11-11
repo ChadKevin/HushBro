@@ -15,6 +15,7 @@ import com.invictus.hushbro.data.repo.NotificationRepository
 import com.invictus.hushbro.data.repo.RuleRepository
 import com.invictus.hushbro.data.repo.StatsRepository
 import com.invictus.hushbro.notify.DigestManager
+import com.invictus.hushbro.notify.QuietHoursScheduler
 import com.invictus.hushbro.service.HushBroListenerService
 import com.invictus.hushbro.service.ListenerBridge
 import com.invictus.hushbro.ui.nav.HushBroNav
@@ -59,15 +60,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         notificationAccessGranted = PermissionUtils.isNotificationAccessGranted(this)
-        if (notificationAccessGranted && !listenerBridge.isListenerConnected.value) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                runCatching {
-                    NotificationListenerService.requestRebind(
-                        ComponentName(this@MainActivity, HushBroListenerService::class.java)
-                    )
-                }
+        if (notificationAccessGranted && !listenerBridge.isListenerConnected.value && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            runCatching {
+                NotificationListenerService.requestRebind(
+                    ComponentName(this@MainActivity, HushBroListenerService::class.java)
+                )
             }
         }
-        listenerBridge.updateActiveCount()
+        listenerBridge.updateActiveCount(force = true)
+        // Also refresh after returning from Android's DND policy-access settings.
+        QuietHoursScheduler.refresh(this)
     }
 }
