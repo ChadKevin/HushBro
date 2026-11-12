@@ -74,6 +74,7 @@ fun HushBroNav(
             composable("settings") {
                 SettingsScreen(settingsStore, csvExporter, listenerBridge, onGrantClick)
             }
+            composable("settings") { SettingsScreen(settingsStore, csvExporter, listenerBridge, onGrantClick) }
         }
     }
 }

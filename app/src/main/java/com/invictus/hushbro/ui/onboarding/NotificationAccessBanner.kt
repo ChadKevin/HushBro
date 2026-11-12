@@ -77,7 +77,7 @@ fun NotificationAccessBanner(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = if (isListenerConnected) "Listener service connected and active" else "Listener service is standing by",
+                    text = if (isListenerConnected) "Listener service connected and active" else "Listener service disconnected. Run the listener test or reopen Notification Access settings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )

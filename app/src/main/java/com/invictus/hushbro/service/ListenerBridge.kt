@@ -11,6 +11,12 @@ import javax.inject.Singleton
 private const val LISTENER_TAG = "HushBroListenerBridge"
 
 enum class ListenerTestState { IDLE, WAITING, PASSED, FAILED }
+enum class ListenerTestState {
+    IDLE,
+    WAITING,
+    PASSED,
+    FAILED
+}
 
 @Singleton
 open class ListenerBridge @Inject constructor() {
@@ -25,6 +31,7 @@ open class ListenerBridge @Inject constructor() {
 
     @Volatile private var activeService: HushBroListenerService? = null
     @Volatile private var lastCountUpdateAt = 0L
+    private var activeService: HushBroListenerService? = null
 
     fun attachService(service: HushBroListenerService) {
         activeService = service
@@ -56,6 +63,30 @@ open class ListenerBridge @Inject constructor() {
         }.onFailure { Log.w(LISTENER_TAG, "Unable to read active notification count", it) }
             .getOrDefault(_activeNotificationCount.value)
         _activeNotificationCount.value = count
+    fun beginListenerTest() {
+        _listenerTestState.value = ListenerTestState.WAITING
+    }
+
+    fun markListenerTestPassed() {
+        _listenerTestState.value = ListenerTestState.PASSED
+    }
+
+    fun markListenerTestFailed() {
+        if (_listenerTestState.value == ListenerTestState.WAITING) {
+            _listenerTestState.value = ListenerTestState.FAILED
+        }
+    }
+
+    fun updateActiveCount() {
+        val service = activeService
+        if (service != null) {
+            val count = runCatching {
+                service.activeNotifications?.count {
+                    it.packageName != service.packageName
+                } ?: 0
+            }.getOrDefault(0)
+            _activeNotificationCount.value = count
+        }
     }
 
     // Kept for non-listener pipeline callers and unit tests.

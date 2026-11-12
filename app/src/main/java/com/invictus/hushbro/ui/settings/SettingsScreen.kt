@@ -9,6 +9,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
+import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -110,6 +113,34 @@ fun SettingsScreen(
     ) {
         if (settings != null) QuietHoursScheduler.refresh(context)
     }
+
+    val postListenerTest: () -> Unit = {
+        try {
+            listenerBridge.beginListenerTest()
+            ListenerTestNotification.post(context)
+            scope.launch {
+                delay(5_000L)
+                listenerBridge.markListenerTestFailed()
+            }
+        } catch (e: SecurityException) {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Allow notifications for HushBro to run the test.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Could not post the test notification.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) postListenerTest()
+        else {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Notification permission is needed for the test.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     LaunchedEffect(settings?.digestInterval) {
         settings?.digestInterval?.let { scheduleDigestWork(context, it) }
     }
@@ -167,6 +198,10 @@ fun SettingsScreen(
         ScreenHeader("Settings", "Your device, your boundaries, your data.")
 
         SettingsCard("Notification listener", "Check that Android is connected to HushBro and that notification callbacks are reaching the app.") {
+        SettingsCard(
+            "Notification listener",
+            "Check that Android is connected to HushBro and that notification callbacks are reaching the app."
+        ) {
             Text(
                 if (listenerConnected) "Status: Connected" else "Status: Disconnected",
                 style = MaterialTheme.typography.titleSmall,
@@ -193,6 +228,18 @@ fun SettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Send test notification") }
+                    if (Build.VERSION.SDK_INT >= 33 &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        postListenerTest()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Send test notification")
+            }
             Spacer(Modifier.height(6.dp))
             OutlinedButton(onClick = onGrantClick, modifier = Modifier.fillMaxWidth()) {
                 Text("Open Notification Access settings")
