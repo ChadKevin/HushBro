@@ -1,6 +1,14 @@
 package com.invictus.hushbro.ui.settings
 
 import android.Manifest
+import android.app.NotificationManager
+import android.app.TimePickerDialog
+import android.content.ComponentName
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import android.app.TimePickerDialog
 import android.content.pm.PackageManager
 import android.os.Build
@@ -8,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,23 +24,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.DoNotDisturbOn
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -40,24 +48,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.invictus.hushbro.data.db.model.NotificationTag
 import com.invictus.hushbro.data.prefs.SettingsStore
 import com.invictus.hushbro.notify.Channels
 import com.invictus.hushbro.notify.ListenerTestNotification
+import com.invictus.hushbro.notify.QuietHoursScheduler
+import com.invictus.hushbro.notify.QuietHoursTime
+import com.invictus.hushbro.service.HushBroListenerService
 import com.invictus.hushbro.service.ListenerBridge
 import com.invictus.hushbro.service.ListenerTestState
 import com.invictus.hushbro.ui.components.AutumnDivider
 import com.invictus.hushbro.ui.components.ScreenHeader
-import com.invictus.hushbro.work.DigestWorker
 import com.invictus.hushbro.util.CsvExporter
+import com.invictus.hushbro.util.PermissionUtils
+import com.invictus.hushbro.work.DigestWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -77,6 +93,26 @@ fun SettingsScreen(
     val settings by settingsStore.userSettingsFlow.collectAsState(initial = null)
     val listenerConnected by listenerBridge.isListenerConnected.collectAsState()
     val listenerTestState by listenerBridge.listenerTestState.collectAsState()
+    val activeCount by listenerBridge.activeNotificationCount.collectAsState()
+    val notificationManager = remember(context) {
+        context.getSystemService(NotificationManager::class.java)
+    }
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMillis = System.currentTimeMillis()
+            delay(1_000L)
+        }
+    }
+    LaunchedEffect(
+        settings?.quietHoursEnabled,
+        settings?.quietHoursStart,
+        settings?.quietHoursEnd,
+        settings?.quietHoursSystemDndEnabled
+    ) {
+        if (settings != null) QuietHoursScheduler.refresh(context)
+    }
 
     val postListenerTest: () -> Unit = {
         try {
@@ -109,6 +145,37 @@ fun SettingsScreen(
         settings?.digestInterval?.let { scheduleDigestWork(context, it) }
     }
 
+    val postListenerTest: () -> Unit = {
+        try {
+            listenerBridge.beginListenerTest()
+            ListenerTestNotification.post(context)
+            scope.launch {
+                delay(5_000L)
+                listenerBridge.markListenerTestFailed()
+            }
+        } catch (e: SecurityException) {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Allow notifications for HushBro to run the test.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Could not post the test notification.", Toast.LENGTH_LONG).show()
+        }
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) postListenerTest()
+        else {
+            listenerBridge.markListenerTestFailed()
+            Toast.makeText(context, "Notification permission is needed for the test.", Toast.LENGTH_LONG).show()
+        }
+    }
+    val quietNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) Toast.makeText(context, "Allow HushBro notifications to see the quiet-hours countdown.", Toast.LENGTH_LONG).show()
+    }
+
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         if (uri != null) {
             scope.launch {
@@ -130,6 +197,7 @@ fun SettingsScreen(
         Text("PREFERENCES  /  PRIVACY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         ScreenHeader("Settings", "Your device, your boundaries, your data.")
 
+        SettingsCard("Notification listener", "Check that Android is connected to HushBro and that notification callbacks are reaching the app.") {
         SettingsCard(
             "Notification listener",
             "Check that Android is connected to HushBro and that notification callbacks are reaching the app."
@@ -139,6 +207,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleSmall,
                 color = if (listenerConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
+            Text("Active notifications observed: $activeCount", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(6.dp))
             Text(
                 when (listenerTestState) {
@@ -153,6 +222,12 @@ fun SettingsScreen(
             Spacer(Modifier.height(10.dp))
             Button(
                 onClick = {
+                    if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else postListenerTest()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Send test notification") }
                     if (Build.VERSION.SDK_INT >= 33 &&
                         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
                     ) {
@@ -169,6 +244,28 @@ fun SettingsScreen(
             OutlinedButton(onClick = onGrantClick, modifier = Modifier.fillMaxWidth()) {
                 Text("Open Notification Access settings")
             }
+            Spacer(Modifier.height(6.dp))
+            OutlinedButton(
+                onClick = {
+                    if (!PermissionUtils.isNotificationAccessGranted(context)) {
+                        onGrantClick()
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        runCatching {
+                            NotificationListenerService.requestRebind(
+                                ComponentName(context, HushBroListenerService::class.java)
+                            )
+                        }.onSuccess {
+                            Toast.makeText(context, "Reconnect requested. Reopen this screen to check the status.", Toast.LENGTH_LONG).show()
+                        }.onFailure {
+                            Toast.makeText(context, "Reconnect failed. Toggle HushBro in Notification Access settings.", Toast.LENGTH_LONG).show()
+                            onGrantClick()
+                        }
+                    } else {
+                        onGrantClick()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Reconnect notification listener") }
         }
         AutumnDivider()
 
@@ -187,7 +284,18 @@ fun SettingsScreen(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Digest delivery uses Android WorkManager, so it may run later than the selected daily or weekly interval.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Digest delivery uses Android WorkManager and may run later than the selected daily or weekly interval.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        val request = OneTimeWorkRequestBuilder<DigestWorker>()
+                            .setInputData(workDataOf(DigestWorker.KEY_FORCE to true))
+                            .build()
+                        WorkManager.getInstance(context).enqueue(request)
+                        Toast.makeText(context, "Digest requested. It appears when matching held notifications exist.", Toast.LENGTH_LONG).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Send digest now") }
                 Spacer(Modifier.height(12.dp))
                 Text("Include these notification groups", style = MaterialTheme.typography.titleSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -207,14 +315,28 @@ fun SettingsScreen(
             }
             AutumnDivider()
 
-            SettingsCard("Quiet hours", "Notifications arriving during this window are held for a later digest, unless a mute rule matches.") {
+            SettingsCard("Quiet hours", "Hold incoming notifications until your quiet period ends. The countdown continues in the notification shade and the schedule survives app process death.") {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.weight(1f)) {
                         Text("Enable quiet hours", style = MaterialTheme.typography.titleMedium)
                         Text("Overnight times are supported.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = s.quietHoursEnabled, onCheckedChange = { enabled -> scope.launch { settingsStore.setQuietHoursEnabled(enabled) } })
+                    Switch(checked = s.quietHoursEnabled, onCheckedChange = { enabled ->
+                        scope.launch { settingsStore.setQuietHoursEnabled(enabled) }
+                        if (enabled && Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                            quietNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    })
                 }
+                val isActive = QuietHoursTime.isActive(s, nowMillis)
+                val endAt = QuietHoursTime.endTimeMillis(s, nowMillis)
+                val quietStatus = when {
+                    !s.quietHoursEnabled -> "Quiet hours are off."
+                    isActive && endAt != null -> "Active now · ${QuietHoursTime.formatDuration(endAt - nowMillis)} remaining"
+                    else -> "Next scheduled start: ${QuietHoursTime.formatClockTime(s.quietHoursStart)}"
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(quietStatus, style = MaterialTheme.typography.titleSmall, color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(onClick = {
@@ -228,6 +350,26 @@ fun SettingsScreen(
                         TimePickerDialog(context, { _, h, m -> scope.launch { settingsStore.setQuietHours(s.quietHoursStart, h * 60 + m) } }, hour, minute, true).show()
                     }, modifier = Modifier.weight(1f)) { Text("Ends ${formatMinutes(s.quietHoursEnd)}") }
                 }
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Use system Do Not Disturb", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (notificationManager?.isNotificationPolicyAccessGranted == true) "DND policy access is available."
+                            else "Android requires separate DND policy access for system-wide silencing.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = s.quietHoursSystemDndEnabled, onCheckedChange = { enabled ->
+                        scope.launch { settingsStore.setQuietHoursSystemDndEnabled(enabled) }
+                        if (enabled && notificationManager?.isNotificationPolicyAccessGranted != true) {
+                            runCatching { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)) }
+                                .onFailure { Toast.makeText(context, "Open Android Settings to grant DND access.", Toast.LENGTH_LONG).show() }
+                        }
+                    })
+                }
+                Text("HushBro restores the previous DND filter only if it was the app that changed it. WorkManager may be delayed by Android battery restrictions; force-stopping the app disables background work until it is opened again.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             AutumnDivider()
 

@@ -24,6 +24,7 @@ data class UserSettings(
     val quietHoursEnabled: Boolean = false,
     val quietHoursStart: Int = 1320, // 22:00
     val quietHoursEnd: Int = 420,    // 07:00
+    val quietHoursSystemDndEnabled: Boolean = false,
     val retentionDays: Int = 30
 )
 
@@ -36,16 +37,13 @@ class SettingsStore(private val context: Context) {
         val KEY_QUIET_HOURS_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val KEY_QUIET_HOURS_START = intPreferencesKey("quiet_hours_start")
         val KEY_QUIET_HOURS_END = intPreferencesKey("quiet_hours_end")
+        val KEY_QUIET_HOURS_SYSTEM_DND = booleanPreferencesKey("quiet_hours_system_dnd_enabled")
         val KEY_RETENTION_DAYS = intPreferencesKey("retention_days")
     }
 
     val userSettingsFlow: Flow<UserSettings> = context.dataStore.data
         .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
         }
         .map { preferences ->
             UserSettings(
@@ -55,6 +53,7 @@ class SettingsStore(private val context: Context) {
                 quietHoursEnabled = preferences[KEY_QUIET_HOURS_ENABLED] ?: false,
                 quietHoursStart = preferences[KEY_QUIET_HOURS_START] ?: 1320,
                 quietHoursEnd = preferences[KEY_QUIET_HOURS_END] ?: 420,
+                quietHoursSystemDndEnabled = preferences[KEY_QUIET_HOURS_SYSTEM_DND] ?: false,
                 retentionDays = preferences[KEY_RETENTION_DAYS] ?: 30
             )
         }
@@ -65,45 +64,37 @@ class SettingsStore(private val context: Context) {
     val retentionDaysFlow: Flow<Int> = userSettingsFlow.map { it.retentionDays }
 
     suspend fun setOnboardingDone(done: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_ONBOARDING_DONE] = done
-        }
+        context.dataStore.edit { it[KEY_ONBOARDING_DONE] = done }
     }
 
     suspend fun setDigestInterval(interval: String) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_DIGEST_INTERVAL] = interval
-        }
+        context.dataStore.edit { it[KEY_DIGEST_INTERVAL] = interval }
     }
 
     suspend fun setDigestTags(tags: Set<String>) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_DIGEST_TAGS] = tags
-        }
+        context.dataStore.edit { it[KEY_DIGEST_TAGS] = tags }
     }
 
     suspend fun setQuietHoursEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_QUIET_HOURS_ENABLED] = enabled
-        }
+        context.dataStore.edit { it[KEY_QUIET_HOURS_ENABLED] = enabled }
     }
 
     suspend fun setQuietHours(startMinutes: Int, endMinutes: Int) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_QUIET_HOURS_START] = startMinutes
-            preferences[KEY_QUIET_HOURS_END] = endMinutes
+        context.dataStore.edit {
+            it[KEY_QUIET_HOURS_START] = startMinutes.coerceIn(0, 1439)
+            it[KEY_QUIET_HOURS_END] = endMinutes.coerceIn(0, 1439)
         }
+    }
+
+    suspend fun setQuietHoursSystemDndEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_QUIET_HOURS_SYSTEM_DND] = enabled }
     }
 
     suspend fun setRetentionDays(days: Int) {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_RETENTION_DAYS] = days
-        }
+        context.dataStore.edit { it[KEY_RETENTION_DAYS] = days }
     }
 
     suspend fun clearAll() {
-        context.dataStore.edit { preferences ->
-            preferences.clear()
-        }
+        context.dataStore.edit { it.clear() }
     }
 }

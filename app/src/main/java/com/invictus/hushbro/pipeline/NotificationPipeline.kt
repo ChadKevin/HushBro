@@ -34,12 +34,21 @@ class NotificationPipeline @Inject constructor(
 ) {
     companion object {
         private const val TAG = "HushBroPipeline"
-        const val CHANNEL_CAPACITY = 512
+        // A short burst of 1,000+ events fits without discarding earlier notifications.
+        const val CHANNEL_CAPACITY = 4096
         const val MAX_BATCH_SIZE = 100
         const val DRAIN_TIMEOUT_MS = 250L
     }
 
-    private val channel = Channel<RawNotification>(CHANNEL_CAPACITY, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    // A 4,096-event buffer absorbs large bursts. If an extreme burst exceeds it,
+    // make the loss visible in logs rather than silently discarding an older event.
+    private val channel = Channel<RawNotification>(
+        CHANNEL_CAPACITY,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        onUndeliveredElement = { dropped ->
+            Log.w(TAG, "Queue overflow dropped a buffered notification from ${dropped.packageName}")
+        }
+    )
     private val consumerStarted = AtomicBoolean(false)
 
     fun start() = Unit
@@ -74,7 +83,7 @@ class NotificationPipeline @Inject constructor(
     private suspend fun processBatch(batch: List<RawNotification>) {
         val settings = settingsStore?.userSettingsFlow?.first() ?: UserSettings()
         val quietHoursActive = isWithinQuietHours(settings)
-        val entities = mutableListOf<NotificationEntity>()
+        val entities = ArrayList<NotificationEntity>(batch.size)
         var failed = 0
 
         for (raw in batch) {
@@ -101,6 +110,11 @@ class NotificationPipeline @Inject constructor(
                         textHash = TextHash.of(redacted.title, redacted.text)
                     )
                 )
+                // Only fallback events (for example, the listener cache was not ready)
+                // reach this delayed cancellation path. Normal listener rules cancel inline.
+                if (action == RuleAction.MUTE) {
+                    listenerBridge.cancelNotificationByKey(raw.key)
+                }
                 // Real listener callbacks cancel matching keys immediately. Keep the delayed fallback only for non-listener callers/tests.
                 if (action == RuleAction.MUTE && !raw.listenerCallbackHandled) listenerBridge.cancelNotificationByKey(raw.key)
             } catch (e: Throwable) {
